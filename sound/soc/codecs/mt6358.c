@@ -6640,10 +6640,8 @@ static const struct snd_kcontrol_new mt6358_snd_misc_controls[] = {
 		     mt6358_rcv_mic_get, mt6358_rcv_mic_set),
 };
 
-static int mt6358_codec_init_reg(struct mt6358_priv *priv)
+static void mt6358_codec_init_reg(struct mt6358_priv *priv)
 {
-	int ret = 0;
-
 	/* enable clk buf */
 	regmap_update_bits(priv->regmap, MT6358_DCXO_CW14,
 			   0x1 << RG_XO_AUDIO_EN_M_SFT,
@@ -6688,7 +6686,6 @@ static int mt6358_codec_init_reg(struct mt6358_priv *priv)
 
 	/* this will trigger dctrim widgat power down event */
 	enable_trim_buf(priv, true);
-	return ret;
 }
 
 static int get_hp_current_calibrate_val(struct mt6358_priv *priv)
