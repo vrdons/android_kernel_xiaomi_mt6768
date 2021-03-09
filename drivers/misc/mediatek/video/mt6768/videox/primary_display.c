@@ -4011,7 +4011,7 @@ static int update_primary_intferface_module(void)
 
 static void replace_fb_addr_to_mva(void)
 {
-#if (defined CONFIG_MTK_M4U) || (defined CONFIG_MTK_IOMMU_V2)
+#if (defined CONFIG_MTK_M4U)
 	struct ddp_fb_info fb_info;
 	int i;
 	fb_info.fb_mva = pgc->framebuffer_mva;
