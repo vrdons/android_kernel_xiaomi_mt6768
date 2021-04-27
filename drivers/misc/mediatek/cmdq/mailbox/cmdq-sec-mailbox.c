@@ -1285,6 +1285,15 @@ static void cmdq_sec_task_exec_work(struct work_struct *work_item)
 			goto task_err_callback;
 		}
 	}
+	max_task = cmdq_max_task_in_secure_thread[
+		task->thread->idx - CMDQ_MIN_SECURE_THREAD_ID];
+	if (task->thread->task_cnt > max_task) {
+		cmdq_err("task_cnt:%u cannot more than %u task:%p thrd-idx:%u",
+			task->thread->task_cnt, max_task,
+			task, task->thread->idx);
+		err = -EMSGSIZE;
+		goto task_err_callback;
+	}
 
 	max_task = cmdq_max_task_in_secure_thread[
 		task->thread->idx - CMDQ_MIN_SECURE_THREAD_ID];
