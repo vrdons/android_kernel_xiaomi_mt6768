@@ -86,9 +86,7 @@
 #include "mtk_vcorefs_manager.h"
 #endif
 
-#ifdef CONFIG_MTK_MT6382_BDG
 #include "ddp_disp_bdg.h"
-#endif
 #include "disp_lowpower.h"
 #include "disp_recovery.h"
 /* #include "mt_spm_sodi_cmdq.h" */
@@ -1092,6 +1090,7 @@ int primary_display_get_debug_state(char *stringbuf, int buf_len)
 	}
 	len += scnprintf(stringbuf + len, buf_len - len,
 		"|********Primary Display Path General Information********\n");
+
 	if (mutex_trylock(&(pgc->lock))) {
 		mutex_unlock(&(pgc->lock));
 		if (len > buf_len) {
@@ -3788,9 +3787,9 @@ int primary_display_init(char *lcm_name, unsigned int lcm_fps,
 
 	dprec_init();
 	dpmgr_init();
-#ifdef CONFIG_MTK_MT6382_BDG
-	bdg_first_init();
-#endif
+	if (bdg_is_bdg_connected() == 1)
+		bdg_first_init();
+
 	init_cmdq_slots(&(pgc->ovl_config_time), 3, 0);
 	init_cmdq_slots(&(pgc->cur_config_fence),
 		DISP_SESSION_TIMELINE_COUNT, 0);
@@ -3930,9 +3929,6 @@ int primary_display_init(char *lcm_name, unsigned int lcm_fps,
 		 * the first config should not wait frame done
 		 * because there's no frame done for vdo mode
 		 */
-#ifdef CONFIG_MTK_MT6382_BDG
-		set_mt6382_init(true);
-#endif
 		_cmdq_reset_config_handle();
 		_cmdq_insert_wait_frame_done_token_mira(
 			pgc->cmdq_handle_config);
@@ -4172,9 +4168,7 @@ int primary_display_init(char *lcm_name, unsigned int lcm_fps,
 	pgc->lcm_refresh_rate = 60;
 	/* keep lowpower init after setting lcm_fps */
 	primary_display_lowpower_init();
-#ifdef CONFIG_MTK_MT6382_BDG
-//	check_stopstate(NULL);
-#endif
+
 	primary_set_state(DISP_ALIVE);
 #if 0 //def CONFIG_TRUSTONIC_TRUSTED_UI
 	disp_switch_data.name = "disp";
@@ -4191,7 +4185,13 @@ int primary_display_init(char *lcm_name, unsigned int lcm_fps,
 	DISPCHECK("%s done\n", __func__);
 
 done:
-	DISPDBG("init and hold wakelock...\n");
+
+	if (is_lcm_inited)
+		set_mt6382_init(1);
+	else
+		set_mt6382_init(0);
+
+	DISPCHECK("init and hold wakelock...\n");
 	wakeup_source_init(&pri_wk_lock, "pri_disp_wakelock");
 	lock_primary_wake_lock(1);
 
@@ -4768,7 +4768,7 @@ int primary_display_suspend(void)
 	mmprofile_log_ex(ddp_mmp_get_events()->primary_suspend,
 		MMPROFILE_FLAG_PULSE, 0, 3);
 
-	DISPDBG("[POWER]primary display path stop[begin]\n");
+	DISPCHECK("[POWER]primary display path stop[begin]\n");
 	dpmgr_path_stop(pgc->dpmgr_handle, CMDQ_DISABLE);
 	DISPCHECK("[POWER]primary display path stop[end]\n");
 	mmprofile_log_ex(ddp_mmp_get_events()->primary_suspend,
@@ -4843,10 +4843,8 @@ int primary_display_suspend(void)
 	active_cfg = pgc->active_cfg;
 #endif
 	/* pgc->state = DISP_SLEPT; */
-
-#ifdef CONFIG_MTK_MT6382_BDG
-	bdg_common_deinit(DISP_BDG_DSI0, NULL);
-#endif
+	if (bdg_is_bdg_connected() == 1)
+		bdg_common_deinit(DISP_BDG_DSI0, NULL);
 
 done:
 	primary_set_state(DISP_SLEPT);
@@ -4932,6 +4930,9 @@ int primary_display_lcm_power_on_state(int alive)
 {
 	int skip_update = 0;
 
+	DISPMSG("%s, power_mode=%d, lcm_power_state=%d\n", __func__,
+		primary_display_get_power_mode_nolock(),
+		primary_display_get_lcm_power_state_nolock());
 	if (primary_display_get_power_mode_nolock() == DOZE) {
 		if (primary_display_get_lcm_power_state_nolock() !=
 			LCM_ON_LOW_POWER) {
@@ -4947,7 +4948,7 @@ int primary_display_lcm_power_on_state(int alive)
 			skip_update = 1;
 	} else if (primary_display_get_power_mode_nolock() == FB_RESUME) {
 		if (primary_display_get_lcm_power_state_nolock() != LCM_ON) {
-			DISPDBG("[POWER]lcm resume[begin]\n");
+			DISPMSG("[POWER]lcm resume[begin]\n");
 
 			if (primary_display_get_lcm_power_state_nolock() !=
 				LCM_ON_LOW_POWER) {
@@ -4956,7 +4957,7 @@ int primary_display_lcm_power_on_state(int alive)
 				disp_lcm_aod(pgc->plcm, 0);
 				skip_update = 1;
 			}
-			DISPCHECK("[POWER]lcm resume[end]\n");
+			DISPMSG("[POWER]lcm resume[end]\n");
 			primary_display_set_lcm_power_state_nolock(LCM_ON);
 		}
 	}
@@ -4969,9 +4970,7 @@ int primary_display_resume(void)
 	enum DISP_STATUS ret = DISP_STATUS_OK;
 	struct ddp_io_golden_setting_arg gset_arg;
 	int i, skip_update = 0;
-#ifdef CONFIG_MTK_MT6382_BDG
 	struct disp_ddp_path_config *data_config;
-#endif
 #ifdef MTK_FB_MMDVFS_SUPPORT
 	unsigned long long bandwidth;
 	unsigned int in_fps = 60;
@@ -5021,12 +5020,11 @@ int primary_display_resume(void)
 		if (dsi_force_config)
 			DSI_ForceConfig(1);
 	}
-#ifdef CONFIG_MTK_MT6382_BDG
-	//FIXME[MT6382]
-	data_config = dpmgr_path_get_last_config(pgc->dpmgr_handle);
-	bdg_common_init(DISP_BDG_DSI0, data_config, NULL);
-	mipi_dsi_rx_mac_init(DISP_BDG_DSI0, data_config, NULL);
-#endif
+	if (bdg_is_bdg_connected() == 1) {
+		data_config = dpmgr_path_get_last_config(pgc->dpmgr_handle);
+		bdg_common_init(DISP_BDG_DSI0, data_config, NULL);
+		mipi_dsi_rx_mac_init(DISP_BDG_DSI0, data_config, NULL);
+	}
 
 #ifdef CONFIG_MTK_HIGH_FRAME_RATE
 	/*DynFPS*/
@@ -5187,12 +5185,10 @@ int primary_display_resume(void)
 	mmprofile_log_ex(ddp_mmp_get_events()->primary_resume,
 		MMPROFILE_FLAG_PULSE, 0, 5);
 
-#ifdef CONFIG_MTK_MT6382_BDG
-	if (get_mt6382_init()) {
+	if (bdg_is_bdg_connected() == 1 && get_mt6382_init()) {
 		bdg_tx_set_mode(DISP_BDG_DSI0, NULL, get_bdg_tx_mode());
 		bdg_tx_start(DISP_BDG_DSI0, NULL);
 	}
-#endif
 /* SW workaround.
  * Enable polling RDMA output line isn't 0 && RDMA status is run,
  * before path resume.
@@ -7195,6 +7191,7 @@ int primary_display_frame_cfg(struct disp_frame_cfg_t *cfg)
 		disp_invoke_fps_chg_callbacks(default_fps / 100);
 		pgc->first_cfg = 0;
 	}
+
 	/*DynFPS debug*/
 	if (g_force_cfg)
 		cfg->active_config = g_force_cfg_id;
@@ -7243,7 +7240,6 @@ int primary_display_frame_cfg(struct disp_frame_cfg_t *cfg)
 	/*check whether need change fps according cfg*/
 	if (primary_display_is_support_DynFPS())
 		primary_display_dynfps_chg_fps(cfg->active_config);
-
 #endif
 
 	dprec_done(trigger_event, 0, 0);
@@ -7980,7 +7976,7 @@ int primary_display_force_set_fps(unsigned int keep, unsigned int skip)
 	return ret;
 }
 
-unsigned int primary_display_force_get_vsync_fps(void)
+unsigned int primary_display_force_get_vsync_fps(void/*int need_lock*/)
 {
 	unsigned int _vsync_fps = 60;
 #if 0
@@ -10303,38 +10299,41 @@ void primary_display_dynfps_chg_fps(int cfg_id)
 		}
 		cmdqRecReset(qhandle);
 
-		if (need_send_cmd) {
-			cmdqRecWait(qhandle, CMDQ_EVENT_MUTEX0_STREAM_EOF);
-			DISPMSG("%s,send cmd to lcm in VFP solution\n", __func__);
-			disp_lcm_dynfps_send_cmd(pgc->plcm, qhandle,
+		if (bdg_is_bdg_connected() != 1) {
+			if (need_send_cmd) {
+				cmdqRecWait(qhandle, CMDQ_EVENT_MUTEX0_STREAM_EOF);
+				DISPMSG("%s,send cmd to lcm in VFP solution\n", __func__);
+				disp_lcm_dynfps_send_cmd(pgc->plcm, qhandle,
 				last_dynfps, new_dynfps);
-		}
-#ifdef CONFIG_MTK_MT6382_BDG
-		if (get_dsc_state()) {
-			cmdqRecClearEventToken(qhandle,
-					CMDQ_EVENT_DSI_TE);
-		}
-#endif
-#ifdef CONFIG_MTK_MT6382_BDG
-		if (get_dsc_state()) {
-			cmdqRecWaitNoClear(qhandle,
-					CMDQ_EVENT_DSI_TE);
-		}
-#endif
-		/*now only primary display support*/
-		ddp_dsi_dynfps_chg_fps(DISP_MODULE_DSI0, qhandle,
+			}
+
+			/*now only primary display support*/
+			ddp_dsi_dynfps_chg_fps(DISP_MODULE_DSI0, qhandle,
+					last_dynfps, new_dynfps, fps_change_index);
+			cmdqRecFlushAsync(qhandle);
+		} else {
+			cmdqRecWait(qhandle, CMDQ_EVENT_MUTEX0_STREAM_EOF);
+
+			/* stop dsi vdo mode */
+			dpmgr_path_build_cmdq(primary_get_dpmgr_handle(),
+				qhandle, CMDQ_STOP_VDO_MODE, 0);
+
+			cmdqRecClearEventToken(qhandle, CMDQ_EVENT_MUTEX0_STREAM_EOF);
+
+			ddp_dsi_dynfps_chg_fps(DISP_MODULE_DSI0, qhandle,
 			last_dynfps, new_dynfps, fps_change_index);
 
-#ifdef CONFIG_MTK_MT6382_BDG
-		_blocking_flush();
-#endif
-		cmdqRecFlushAsync(qhandle);
+			dpmgr_path_build_cmdq(primary_get_dpmgr_handle(), qhandle,
+				CMDQ_START_VDO_MODE, 0);
+			dpmgr_path_trigger(primary_get_dpmgr_handle(),
+				qhandle, CMDQ_ENABLE);
 
-#ifdef CONFIG_MTK_MT6382_BDG
-		ddp_dsi_dynfps_chg_fps(DISP_MODULE_DSI0, NULL,
-			last_dynfps, new_dynfps, fps_change_index);
-#endif
+			ddp_mutex_set_sof_wait(dpmgr_path_get_mutex(
+				primary_get_dpmgr_handle()), qhandle, 0);
 
+			_blocking_flush();
+			cmdqRecFlush(qhandle);
+		}
 	}
 	cmdqRecDestroy(qhandle);
 	/*3, inform fps go directly*/

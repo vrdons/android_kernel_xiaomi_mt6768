@@ -544,7 +544,6 @@ static int mtkfb_release(struct fb_info *info, int user)
 	NOT_REFERENCED(info);
 	NOT_REFERENCED(user);
 	DISPFUNC();
-
 	MSG_FUNC_ENTER();
 	MSG_FUNC_LEAVE();
 	return 0;
@@ -632,7 +631,6 @@ static int mtkfb_blank(int blank_mode, struct fb_info *info)
 	default:
 		return -EINVAL;
 	}
-
 	return 0;
 }
 
@@ -2923,7 +2921,6 @@ static int mtkfb_probe(struct platform_device *pdev)
 	primary_display_set_frame_buffer_address(
 		(unsigned long)(fbdev->fb_va_base), fb_pa, fb_base);
 	primary_display_init(mtkfb_find_lcm_driver(), lcd_fps, is_lcm_inited);
-
 	init_state++;		/* 1 */
 	MTK_FB_XRES = DISP_GetScreenWidth();
 	MTK_FB_YRES = DISP_GetScreenHeight();
@@ -3097,7 +3094,6 @@ static int mtkfb_resume(struct platform_device *pdev)
 static void mtkfb_shutdown(struct platform_device *pdev)
 {
 	MTKFB_LOG("[FB Driver] %s()\n", __func__);
-
 	if (primary_display_is_sleepd()) {
 		MTKFB_LOG("mtkfb has been power off\n");
 		return;
