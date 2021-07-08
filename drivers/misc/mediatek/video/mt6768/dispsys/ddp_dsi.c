@@ -864,7 +864,6 @@ int ddp_dsi_set_bdg_porch_setting(enum DISP_MODULE_ENUM module, void *handle,
 	setvfp[3] = value & 0xff;
 	setvfp[4] = (value & 0xff00) >> 8;
 
-
 	DSI_send_cmd_cmd(handle, DISP_MODULE_DSI0, 1, 0x79, 0x28, 7,
 			setvfp, 1);
 
@@ -2160,16 +2159,16 @@ void DSI_PHY_TIMCONFIG(enum DISP_MODULE_ENUM module,
 	} else if (dsi_params->PLL_CLOCK) {
 		ui = 1000 / (dsi_params->PLL_CLOCK * 2) + 0x01;
 		cycle_time = 8000 / (dsi_params->PLL_CLOCK * 2) + 0x01;
+	} else {
+		DISPINFO("[dsi_dsi.c] PLL clock should not be 0!\n");
+		ASSERT(0);
 	}
+
 	if (bdg_is_bdg_connected() == 1) {
 		ui = ui - 0x01;
 		cycle_time = cycle_time - 0x01;
 	}
 
-	else {
-		DISPINFO("[dsi_dsi.c] PLL clock should not be 0!\n");
-		ASSERT(0);
-	}
 	DISPINFO("Cycle Time=%d, interval=%d, lane#=%d\n",
 		__func__, cycle_time, ui, lane_no);
 
@@ -3873,7 +3872,7 @@ static void DSI_send_cmd_cmd(struct cmdqRecStruct *cmdq,
 	struct DSI_T2_INS t2;
 	struct DSI_CMDQ *cmdq_reg;
 
-	DDPMSG("%s +\n", __func__);
+//	DDPMSG("%s +\n", __func__);
 
 	memset(&t0, 0, sizeof(struct DSI_T0_INS));
 	memset(&t2, 0, sizeof(struct DSI_T2_INS));
@@ -3955,7 +3954,7 @@ static void DSI_send_cmd_cmd(struct cmdqRecStruct *cmdq,
 		_dsi_wait_not_busy_(module, cmdq);
 	}
 
-	DDPMSG("%s -\n", __func__);
+//	DDPMSG("%s -\n", __func__);
 }
 
 static void DSI_set_cmdq_serially(enum DISP_MODULE_ENUM module,
@@ -4333,8 +4332,6 @@ UINT32 DSI_dcs_read_lcm_reg_v4(enum DISP_MODULE_ENUM module,
 
 	return recv_data_cnt;
 }
-
-
 
 void DSI_set_cmdq(enum DISP_MODULE_ENUM module, struct cmdqRecStruct *cmdq,
 	unsigned int *pdata, unsigned int queue_size,
@@ -6601,10 +6598,9 @@ int ddp_dsi_build_cmdq(enum DISP_MODULE_ENUM module,
 		unsigned char rxsel1[] = {0x31, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00}; //ID 0x70
 
 		DSI_send_cmd_cmd(cmdq_trigger_handle, DISP_MODULE_DSI0, 1, 0x79, 0x84, 7,
-				rxbypass1, 1);
-
+				rxbypass1, 1); //0x00021084 = 0x00000002
 		DSI_send_cmd_cmd(cmdq_trigger_handle, DISP_MODULE_DSI0, 1, 0x79, 0x70, 7,
-				rxsel0, 1);
+				rxsel0, 1); // //0x00023170 = 0x00000000
 #endif
 		/* enable dsi interrupt: RD_RDY/CMD_DONE (need do this here?) */
 		DSI_OUTREGBIT(cmdq_trigger_handle, struct DSI_INT_ENABLE_REG,
@@ -6658,7 +6654,6 @@ int ddp_dsi_build_cmdq(enum DISP_MODULE_ENUM module,
 				&DSI_REG[dsi_i]->DSI_START, 0);
 			DSI_OUTREG32(cmdq_trigger_handle,
 				&DSI_REG[dsi_i]->DSI_START, 1);
-
 
 			/* 1. wait DSI RD_RDY(must clear,
 			 * in case of cpu RD_RDY interrupt handler)
@@ -6955,7 +6950,6 @@ int ddp_dsi_build_cmdq(enum DISP_MODULE_ENUM module,
 
 		DSI_send_cmd_cmd(cmdq_trigger_handle, DISP_MODULE_DSI0, 1, 0x79, 0x14, 7,
 				setvdo, 1);
-
 		DSI_send_cmd_cmd(cmdq_trigger_handle, DISP_MODULE_DSI0, 1, 0x79, 0x00, 7,
 				stopdsi, 1);
 		DSI_send_cmd_cmd(cmdq_trigger_handle, DISP_MODULE_DSI0, 1, 0x79, 0x00, 7,
