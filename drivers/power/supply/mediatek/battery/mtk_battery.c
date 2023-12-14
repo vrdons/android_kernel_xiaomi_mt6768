@@ -3855,7 +3855,7 @@ static int battery_callback(
 			if (force_get_tbat(true) < 48)
 				notify_fg_chr_full();
 			battery_update(&battery_main);
-			pr_err("battery is full\n");
+			pr_debug("battery is full\n");
 		}
 		break;
 	case CHARGER_NOTIFY_START_CHARGING:
