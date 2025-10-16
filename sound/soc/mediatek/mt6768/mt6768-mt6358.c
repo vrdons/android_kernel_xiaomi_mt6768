@@ -260,19 +260,14 @@ static int mt6768_mt6358_rcv_amp_event(struct snd_soc_dapm_widget *w,
 		aw87519_audio_kspk();
 #endif
 		break;
-	case SND_SOC_DAPM_PRE_PMD:
-		/* spk amp off control */
-#ifdef CONFIG_SND_SOC_AW87519
-		aw87519_audio_off();
-#endif
 /*K19A code for WXYFB-1001 by zhangpeng at 2021.3.19 start*/
 		if (strcmp((const char *)get_audio_pa_vendor(), awinic) == 0) {
 #ifdef CONFIG_SND_SOC_AW87559
 			if (rcv_amp_mode) {
-				pr_info("%s(), aw87xxx_audio_rcv \n", __func__);
+				pr_debug("%s(), aw87xxx_audio_rcv \n", __func__);
 				aw87xxx_audio_scene_load(AW87XXX_RCV_MODE, AW87XXX_RIGHT_CHANNEL);
 			} else {
-				pr_info("%s(), aw87xxx_audio_spk \n", __func__);
+				pr_debug("%s(), aw87xxx_audio_spk \n", __func__);
 				aw87xxx_audio_scene_load(AW87XXX_MUSIC_MODE, AW87XXX_RIGHT_CHANNEL);
 			};
 #endif
@@ -293,15 +288,18 @@ static int mt6768_mt6358_rcv_amp_event(struct snd_soc_dapm_widget *w,
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
 		/* spk amp off control */
+#ifdef CONFIG_SND_SOC_AW87519
+		aw87519_audio_off();
+#endif
 /*K19A code for WXYFB-1001 by zhangpeng at 2021.3.19 start*/
 		if (strcmp((const char *)get_audio_pa_vendor(), awinic) == 0) {
 #ifdef CONFIG_SND_SOC_AW87559
-			pr_info("%s(), aw87xxx_audio_off \n", __func__);
+			pr_debug("%s(), aw87xxx_audio_off \n", __func__);
 			aw87xxx_audio_scene_load(AW87XXX_OFF_MODE, AW87XXX_RIGHT_CHANNEL);
 #endif
 		} else if (strcmp((const char *)get_audio_pa_vendor(), foursemi) == 0) {
 #ifdef CONFIG_SND_SOC_FS16XX
-			pr_info("%s(), fsm audio off()\n", __func__);
+			pr_debug("%s(), fsm audio off()\n", __func__);
 			fsm_speaker_off();
 #endif
 		} else {
