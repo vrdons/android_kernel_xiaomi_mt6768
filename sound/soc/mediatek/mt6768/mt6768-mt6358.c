@@ -259,7 +259,6 @@ static int mt6768_mt6358_rcv_amp_event(struct snd_soc_dapm_widget *w,
 #ifdef CONFIG_SND_SOC_AW87519
 		aw87519_audio_kspk();
 #endif
-		break;
 /*K19A code for WXYFB-1001 by zhangpeng at 2021.3.19 start*/
 		if (strcmp((const char *)get_audio_pa_vendor(), awinic) == 0) {
 #ifdef CONFIG_SND_SOC_AW87559
