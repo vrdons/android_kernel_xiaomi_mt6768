@@ -147,7 +147,6 @@ int translate_value[2048] = {0, 50, 55, 171, 253, 317, 360, 414, 452, 486, 516, 
 												2031, 2031, 2032, 2032, 2032, 2032, 2032, 2032, 2032, 2033, 2033, 2033, 2033, 2033, 2033, 2033, 2034, 2034, 2034, 2034, 2034,\
 												2034, 2034, 2035, 2035, 2035, 2035, 2035, 2035, 2035, 2036, 2036, 2036, 2036, 2036, 2036, 2036, 2037, 2037, 2037, 2037, 2037,\
 												2037, 2037, 2038, 2038, 2038, 2038, 2038, 2038, 2038, 2039, 2039, 2039, 2039, 2039, 2039, 2039, 2040, 2040, 2040, 2040};
-
 static int dump_i2c_reg(struct ti_lmu_bl_chip *chip)
 {
 	struct regmap *regmap = chip->lmu->regmap;
@@ -789,6 +788,9 @@ static int ti_lmu_backlight_init(struct ti_lmu_bl_chip *chip)
 	}
 #else
 	regmap_write(regmap, 0x10, 0x03);
+	/* Huaqin modify for HQ-142064 by caogaojie at 2021/06/28 start */
+	regmap_write(regmap, 0x13, 0x22);
+	/* Huaqin modify for HQ-142064 by caogaojie at 2021/06/28 end */
 	regmap_write(regmap, 0x16, 0x00);
 	regmap_write(regmap, 0x19, 0x03);
 	regmap_write(regmap, 0x18, 0x15);//21.8mA default

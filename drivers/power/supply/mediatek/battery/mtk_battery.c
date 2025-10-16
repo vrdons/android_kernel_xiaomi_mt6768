@@ -107,6 +107,7 @@ static struct cdev *adc_cali_cdev;
 extern int mtk_qmax_aging;
 int force_temp;
 int otg_limit = -1;
+int g_chg_en_flag = 1;
 int otg_ibat_limit = -1;
 extern int my_battery_id_voltage;
 static int adc_cali_slop[14] = {
@@ -123,6 +124,9 @@ struct delayed_work	otg_boost_current_work;
 int cycle_count;
 static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
+/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 start */
+	POWER_SUPPLY_PROP_SHUTDOWN_DELAY,
+/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 end*/
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_CHARGE_TYPE,
 	POWER_SUPPLY_PROP_PRESENT,
@@ -137,9 +141,15 @@ static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,
 	POWER_SUPPLY_PROP_TEMP,
 	POWER_SUPPLY_PROP_INPUT_SUSPEND,
+	/*K19A-75 charge by wangchao at 2021/4/15 start*/
+	POWER_SUPPLY_PROP_HIZ_ENABLE,
+	/*K19A-75 charge by wangchao at 2021/4/15 end*/
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
 	POWER_SUPPLY_PROP_BATT_ID,
 	POWER_SUPPLY_PROP_BATTERY_TYPE,
+	POWER_SUPPLY_PROP_BATTERY_VENDOR,
+    POWER_SUPPLY_PROP_CHARGING_ENABLED,
+    POWER_SUPPLY_PROP_BATTERY_ID_VOLTAGE,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_REVERSE_LIMIT,
 };
@@ -416,7 +426,14 @@ static int bms_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_BATTERY_TYPE:
 		pr_info("gm.battery_id :%d.\n", gm.battery_id);
-		val->intval = gm.battery_id;
+#ifdef TARGET_PRODUCT_SELENE
+		if (gm.battery_id == 4) {
+			val->intval = 3;
+		} else if (gm.battery_id == 5){
+			val->intval = 1;
+		} else
+#endif
+			val->intval = gm.battery_id;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 #ifdef CONFIG_MTK_ENG_BUILD
@@ -426,8 +443,18 @@ static int bms_get_property(struct power_supply *psy,
 			qmax = mtk_qmax_aging * 100;
 		val->intval = qmax;
 		break;
+/*K19A HQ-138551 K19A charger of charge_full by miaozhichao at 2021/6/2 end*/
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+#ifdef TARGET_PRODUCT_SELENE
+		/*K19A HQ-143121 K19A charger of charge_full_design by miaozhichao at 2021/6/25 start*/
+		if(gm.battery_id == 0 || gm.battery_id == 1)
+			val->intval = 5000000;
+		else
+			val->intval = 6000000;
+		/*K19A HQ-143121 K19A charger of charge_full_design by miaozhichao at 2021/6/25 end*/
+#else
 		val->intval = 5020000;
+#endif
 		break;
 	case POWER_SUPPLY_PROP_RESISTANCE:
 		val->intval = 140000;
@@ -505,7 +532,10 @@ void otg_thermal_limit(void)
 		charger_dev_set_otg_current(primary_charger, 1800000);
 	}
 }
-
+/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 start */
+#define SHUTDOWN_DELAY_VOL	3300
+/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 end */
+int get_charger_type(void);
 static int battery_get_property(struct power_supply *psy,
 	enum power_supply_property psp,
 	union power_supply_propval *val)
@@ -514,9 +544,12 @@ static int battery_get_property(struct power_supply *psy,
 	int fgcurrent = 0;
 	bool b_ischarging = 0;
 	int input_suspend;
-	int qmax = 5020 * 1000;
 	u32 type;
 	static struct charger_device *primary_charger;
+	/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 start */
+	static bool shutdown_delay_cancel;
+	static bool last_shutdown_delay;
+	/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 end */
 	struct battery_data *data = container_of(psy->desc, struct battery_data, psd);
 	primary_charger = get_charger_by_name("primary_chg");
 	switch (psp) {
@@ -543,8 +576,10 @@ static int battery_get_property(struct power_supply *psy,
 		cycle_count = gm.bat_cycle;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_TYPE:
-		charger_dev_get_charger_type(primary_charger, &type);
-		if (type > 3 || type < 0)
+		//charger_dev_get_charger_type(primary_charger, &type);
+		type = get_charger_type();
+		pr_debug("ljj charger_dev_get_charger_type = %d\n",type);
+		if (type > 9 || type < 0)
 			type = 0;
 		val->intval = type;
 		break;
@@ -553,9 +588,48 @@ static int battery_get_property(struct power_supply *psy,
 			val->intval = gm.fixed_uisoc;
 		else
 			val->intval = data->BAT_CAPACITY;
+		/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 start */
+		/* Huaqin add for HQ-140671 by miaozhichao at 2021/6/15 start */
+		if (val->intval  == 0){
+		/* Huaqin add for HQ-140671 by miaozhichao at 2021/6/15 end */
+			if ( data->BAT_batt_vol > SHUTDOWN_DELAY_VOL
+				&& data->BAT_STATUS != POWER_SUPPLY_STATUS_CHARGING) {
+				gm.shutdown_delay = true;
+				val->intval = 1;
+			} else if (data->BAT_STATUS == POWER_SUPPLY_STATUS_CHARGING
+				&& gm.shutdown_delay) {
+				gm.shutdown_delay = false;
+				shutdown_delay_cancel = true;
+				val->intval = 1;
+			} else {
+					gm.shutdown_delay = false;
+					if (shutdown_delay_cancel){
+						val->intval = 1;
+					}
+			}
+		}else {
+				gm.shutdown_delay = false;
+				shutdown_delay_cancel = false;
+		}
+		if (last_shutdown_delay != gm.shutdown_delay) {
+			pr_err("last_shutdown_delay:%d,gm.shutdown_delay:%d, update psy\n",last_shutdown_delay,gm.shutdown_delay);
+			last_shutdown_delay = gm.shutdown_delay;
+			power_supply_changed(battery_main.psy);
+		}
+		/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 end */
 		break;
+
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+#ifdef TARGET_PRODUCT_SELENE
+		/*K19A HQ-124115 K19A charger of charge_full_design by wangqi at 2021/4/22 start*/
+		if(gm.battery_id == 0 || gm.battery_id == 1)
+			val->intval = 5000000;
+		else
+			val->intval = 6000000;
+		/*K19A HQ-124115 K19A charger of charge_full_design by wangqi at 2021/4/22 end*/
+#else
 		val->intval = 5020000;
+#endif
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		b_ischarging = gauge_get_current(&fgcurrent);
@@ -575,6 +649,7 @@ static int battery_get_property(struct power_supply *psy,
 			qmax = mtk_qmax_aging * 100;
 		val->intval = qmax;
 		break;
+/*K19A HQ-138551 K19A charger of charge_full by miaozhichao at 2021/6/2 end*/
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 		val->intval = gm.ui_soc * 5020 * 1000 / 100;
 		break;
@@ -585,8 +660,16 @@ static int battery_get_property(struct power_supply *psy,
 		val->intval = gm.tbat_precise;
 		break;
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
+	/*K19A-75 charge by wangchao at 2021/4/15 start*/
+	case POWER_SUPPLY_PROP_HIZ_ENABLE:
+	/*K19A-75 charge by wangchao at 2021/4/15 end*/
 		val->intval = charger_manager_is_input_suspend();
 		break;
+/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 start */
+	case POWER_SUPPLY_PROP_SHUTDOWN_DELAY:
+		val->intval= gm.shutdown_delay;
+		break;
+/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 end */
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		val->intval = charger_manager_get_prop_system_temp_level();
 		break;
@@ -595,6 +678,15 @@ static int battery_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_BATTERY_TYPE:
 		val->intval = gm.battery_id;
+		break;
+	case POWER_SUPPLY_PROP_BATTERY_VENDOR:
+		val->intval = gm.battery_id;
+		break;
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+		val->intval = g_chg_en_flag;
+		break;
+	case POWER_SUPPLY_PROP_BATTERY_ID_VOLTAGE:
+		val->intval = my_battery_id_voltage;
 		break;
 	case POWER_SUPPLY_PROP_REVERSE_LIMIT:
 		val->intval = otg_limit;
@@ -612,11 +704,18 @@ static int battery_set_property(struct power_supply *psy,
 			const union power_supply_propval *val)
 {
 	int rc = 0;
+	static struct charger_device *chg_dev_enable;
+	chg_dev_enable = get_charger_by_name("primary_chg");
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
 		charger_manager_set_input_suspend(val->intval);
 		break;
+	/*K19A-75 charge by wangchao at 2021/4/15 start*/
+	case POWER_SUPPLY_PROP_HIZ_ENABLE:
+		charger_manager_set_hiz_enable(val->intval);
+		break;
+	/*K19A-75 charge by wangchao at 2021/4/15 end*/
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		charger_manager_set_prop_system_temp_level(val->intval);
 		break;
@@ -627,6 +726,22 @@ static int battery_set_property(struct power_supply *psy,
 		otg_limit = val->intval;
 		otg_thermal_limit();
 		break;
+	case POWER_SUPPLY_PROP_CYCLE_COUNT:
+		 gm.bat_cycle  = val->intval;
+		break;
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+		g_chg_en_flag = val->intval;
+		switch (g_chg_en_flag) {
+		case 0:
+			charger_dev_enable(chg_dev_enable, false);
+			break;
+		case 1:
+			charger_dev_enable(chg_dev_enable, true);
+			break;
+		default:
+			bm_err("%s: Unkonwn value(%d) to set cherger enale\n", __func__, g_chg_en_flag);
+			break;
+		}
 	default:
 		rc = -EINVAL;
 		break;
@@ -641,12 +756,17 @@ static int battery_prop_is_writeable(struct power_supply *psy,
 {
 	switch (psp) {
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
+	/*K19A-75 charge by wangchao at 2021/4/15 start*/
+	case POWER_SUPPLY_PROP_HIZ_ENABLE:
+	/*K19A-75 charge by wangchao at 2021/4/15 end*/
 		return 1;
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		return 1;
 	case POWER_SUPPLY_PROP_TEMP:
 		return 1;
 	case POWER_SUPPLY_PROP_REVERSE_LIMIT:
+		return 1;
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 		return 1;
 	default:
 		break;
@@ -745,6 +865,10 @@ void battery_update(struct battery_data *bat_data)
 		pr_err("primary_charger is NULL\n");
 #endif
 		primary_charger = get_charger_by_name("primary_chg");
+		if (!primary_charger) {
+			pr_err("primary_charger is NULL00\n");
+			return;
+		}
 	}
 	charger_dev_is_charging_done(primary_charger, &chg_done);
 
@@ -4225,6 +4349,10 @@ static void otg_boost_limit_work(struct work_struct *work)
 		pr_err("primary_charger is NULL\n");
 #endif
 		primary_charger = get_charger_by_name("primary_chg");
+		if (!primary_charger) {
+			pr_err("primary_charger is NULL\n");
+			return;
+		}
 	}
 	if (otg_limit == 1) {
 		pr_err("phone is to high skip batterty otg boost check\n");
@@ -4237,7 +4365,7 @@ static void otg_boost_limit_work(struct work_struct *work)
 	if (count_high > 888888)
 		count_high = 0;
 
-	if (current_now > 3600000) {
+	if (current_now > 3400000) {
 		count_high++;
 		count_low = 0;
 	} else if (current_now < 2400000) {

@@ -14,7 +14,13 @@
 #include <linux/poll.h>
 #include <linux/slab.h>
 
+#ifdef TARGET_PRODUCT_SELENE
+/* Huaqin modify for HQ-124268 by liunianliang at 2021/08/03 start */
+#define SIMTRAY_GPIO 372
+/* Huaqin modify for HQ-124268 by liunianliang at 2021/08/03 end */
+#else
 #define SIMTRAY_GPIO 371
+#endif
 
 struct simtray_data {
 	struct device *dev;

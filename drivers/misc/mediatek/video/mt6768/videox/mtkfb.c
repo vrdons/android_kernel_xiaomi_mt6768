@@ -179,7 +179,9 @@ unsigned long ext_fb_pa;
 unsigned int ext_lcd_fps = 6000;
 char ext_mtkfb_lcm_name[256] = { 0 };
 #endif
-
+/* Huaqin modify for HQ-141505 by caogaojie at 2021/06/18 start */
+extern real_refresh;
+/* Huaqin modify for HQ-141505 by caogaojie at 2021/06/18 end */
 DEFINE_SEMAPHORE(sem_flipping);
 DEFINE_SEMAPHORE(sem_early_suspend);
 DEFINE_SEMAPHORE(sem_overlay_buffer);
@@ -340,12 +342,41 @@ static int __init mtkfb_get_white_point(char *p)
 
 	lcd_merlin_para.white_point_y = (wpoint[3]-'0') * 100
 		+ (wpoint[4]-'0') * 10 + (wpoint[5]-'0');
-
+/* Huaqin modify for HQ-126356 by caogaojie at 2021/05/06 start */
+	lcd_merlin_para.white_point_l = (wpoint[6]-'0') * 100
+		+ (wpoint[7]-'0') * 10 + (wpoint[8]-'0');
+/* Huaqin modify for HQ-126356 by caogaojie at 2021/05/06 end */
 	return 0;
 }
 
 early_param("ro.boot.lcm_white_point", mtkfb_get_white_point);
+/* Huaqin modify for HQ-126356 by caogaojie at 2021/05/06 start */
+static ssize_t mtkfb_get_wpoint_level(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	int ret;
+	ret = scnprintf(buf, PAGE_SIZE, "%3d\n", lcd_merlin_para.white_point_l);
+	return ret;
+}
 
+static ssize_t mtkfb_set_wpoint_level(struct device *dev, struct device_attribute *attr, const char *buf, size_t len)
+{
+	sscanf(buf, "%3d", &lcd_merlin_para.white_point_l);
+	return len;
+}
+/* Huaqin modify for HQ-126356 by caogaojie at 2021/05/06 end */
+/* Huaqin modify for HQ-141505 by caogaojie at 2021/06/18 start */
+static ssize_t mtkfb_get_refresh(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	int ret;
+	ret = scnprintf(buf, PAGE_SIZE, "%3d\n", real_refresh);
+	return ret;
+}
+static ssize_t mtkfb_set_refresh(struct device *dev, struct device_attribute *attr, const char *buf, size_t len)
+{
+		sscanf(buf, "%3d", &real_refresh);
+		return len;
+}
+/* Huaqin modify for HQ-141505 by caogaojie at 2021/06/18 end */
 static int mtkfb_set_rgb_point_init(void)
 {
 	if (strncmp(mtkfb_lcm_name, "nt36672A_fhdp_dsi_vdo_tianma_lcm_drv", 36) == 0) {
@@ -471,7 +502,9 @@ static ssize_t mtkfb_set_bpoint(struct device *dev, struct device_attribute *att
 
 static ssize_t mtkfb_get_panel_info(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	int ret;
+	/* Huaqin modify for HQ-140354 by liunianliang at 2021/06/15 start */
+	int ret = 0;
+	/* Huaqin modify for HQ-140354 by liunianliang at 2021/06/15 end */
 
 	if (strncmp(mtkfb_lcm_name, "nt36672A_fhdp_dsi_vdo_tianma_lcm_drv", 36) == 0) {
 		ret = sprintf(buf, "incell,vendor:tianma,IC:nt36672a(novatek)\n");
@@ -498,6 +531,10 @@ static DEVICE_ATTR(mtkfb_disprpoint, 0644, mtkfb_get_rpoint, mtkfb_set_rpoint);
 static DEVICE_ATTR(mtkfb_dispgpoint, 0644, mtkfb_get_gpoint, mtkfb_set_gpoint);
 static DEVICE_ATTR(mtkfb_dispbpoint, 0644, mtkfb_get_bpoint, mtkfb_set_bpoint);
 static DEVICE_ATTR(panel_info, 0644, mtkfb_get_panel_info, NULL);
+/* Huaqin modify for HQ-126356 by caogaojie at 2021/05/06 start */
+static DEVICE_ATTR(mtkfb_dispwpoint_level, 0644, mtkfb_get_wpoint_level, mtkfb_set_wpoint_level);
+/* Huaqin modify for HQ-141505 by caogaojie at 2021/06/18 start */
+static DEVICE_ATTR(mtkfb_fps, 0644, mtkfb_get_refresh, mtkfb_set_refresh);
 
 static struct attribute *mtk_fb_attrs[] = {
 	&dev_attr_mtk_fb_hbm.attr,
@@ -506,9 +543,12 @@ static struct attribute *mtk_fb_attrs[] = {
 	&dev_attr_mtkfb_dispgpoint.attr,
 	&dev_attr_mtkfb_dispbpoint.attr,
 	&dev_attr_panel_info.attr,
+	&dev_attr_mtkfb_dispwpoint_level.attr,
+	&dev_attr_mtkfb_fps.attr,
 	NULL,
 };
-
+/* Huaqin modify for HQ-141505 by caogaojie at 2021/06/18 end */
+/* Huaqin modify for HQ-126356 by caogaojie at 2021/05/06 end */
 static struct attribute_group mtk_fb_attr_group = {
 	.attrs = mtk_fb_attrs,
 };
@@ -544,7 +584,6 @@ static int mtkfb_release(struct fb_info *info, int user)
 	NOT_REFERENCED(info);
 	NOT_REFERENCED(user);
 	DISPFUNC();
-
 	MSG_FUNC_ENTER();
 	MSG_FUNC_LEAVE();
 	return 0;
@@ -632,7 +671,6 @@ static int mtkfb_blank(int blank_mode, struct fb_info *info)
 	default:
 		return -EINVAL;
 	}
-
 	return 0;
 }
 
@@ -2584,7 +2622,7 @@ static int __parse_tag_videolfb(struct device_node *node)
 {
 	struct tag_video_lfb *videolfb_tag = NULL;
 	unsigned long size = 0;
-
+	printk("__parse_tag_videolfb begin\n");
 	videolfb_tag = (struct tag_video_lfb *)of_get_property(node,
 		"atag,videolfb", (int *)&size);
 	if (videolfb_tag) {
@@ -2649,7 +2687,7 @@ static int _parse_tag_videolfb(void)
 	int ret;
 	struct device_node *chosen_node;
 
-	DISPCHECK("[DT][videolfb]isvideofb_parse_done = %d\n",
+	printk("[DT][videolfb]isvideofb_parse_done = %d\n",
 		is_videofb_parse_done);
 
 	if (is_videofb_parse_done)
@@ -2923,7 +2961,6 @@ static int mtkfb_probe(struct platform_device *pdev)
 	primary_display_set_frame_buffer_address(
 		(unsigned long)(fbdev->fb_va_base), fb_pa, fb_base);
 	primary_display_init(mtkfb_find_lcm_driver(), lcd_fps, is_lcm_inited);
-
 	init_state++;		/* 1 */
 	MTK_FB_XRES = DISP_GetScreenWidth();
 	MTK_FB_YRES = DISP_GetScreenHeight();
@@ -3029,6 +3066,12 @@ static int mtkfb_probe(struct platform_device *pdev)
 	"prim_panel_wakelock");*/
 	/* end modify for unlock speed */
 
+	if (!strcmp(mtkfb_find_lcm_driver(),
+		"nt35521_hd_dsi_vdo_truly_rt5081_drv")) {
+		register_ccci_sys_call_back(MD_SYS1,
+			MD_DISPLAY_DYNAMIC_MIPI, mipi_clk_change);
+	}
+
 #ifdef CONFIG_LM3697_SUPPORT
 	r = mtkfb_set_rgb_point_init();
 	if (r) {
@@ -3104,7 +3147,6 @@ static int mtkfb_resume(struct platform_device *pdev)
 static void mtkfb_shutdown(struct platform_device *pdev)
 {
 	MTKFB_LOG("[FB Driver] %s()\n", __func__);
-
 	if (primary_display_is_sleepd()) {
 		MTKFB_LOG("mtkfb has been power off\n");
 		return;
@@ -3156,7 +3198,6 @@ void mtkfb_clear_lcm(void)
 static void mtkfb_early_suspend(void)
 {
 	int ret = 0;
-
 	if (disp_helper_get_stage() != DISP_HELPER_STAGE_NORMAL)
 		return;
 
@@ -3178,14 +3219,12 @@ static void mtkfb_early_suspend(void)
 static void mtkfb_late_resume(void)
 {
 	int ret = 0;
-
 	if (disp_helper_get_stage() != DISP_HELPER_STAGE_NORMAL)
 		return;
 
 	DISPMSG("[FB Driver] enter late_resume\n");
 
 	ret = primary_display_resume();
-
 	if (ret) {
 		DISPERR("primary display resume failed\n");
 		return;

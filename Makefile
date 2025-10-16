@@ -1114,6 +1114,9 @@ KBUILD_CFLAGS += -DTARGET_PRODUCT_LANCELOT
 else ifeq ($(CONFIG_TARGET_PRODUCT_SHIVACOMMON),y)
 # Define macros here only for shiva project
 KBUILD_CFLAGS += -DTARGET_PRODUCT_SHIVA
+else ifeq ($(CONFIG_TARGET_PRODUCT_SELENECOMMON),y)
+# Define macros here only for selene common project
+KBUILD_CFLAGS += -DTARGET_PRODUCT_SELENE
 else ifeq ($(CONFIG_TARGET_PRODUCT_MERLINCOMMON),y)
 # Define macros here only for merlin common project
 KBUILD_CFLAGS += -DTARGET_PRODUCT_MERLINCOMMON
