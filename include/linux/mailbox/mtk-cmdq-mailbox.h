@@ -141,10 +141,6 @@ struct cmdq_pkt {
 #endif
 #endif	/* end of CONFIG_MTK_CMDQ_MBOX_EXT */
 	bool			task_alloc;
-#if defined(CONFIG_MTK_MT6382_BDG)
-	void			*bdg_data;
-	bool			reuse;
-#endif
 };
 
 struct cmdq_thread {

@@ -103,9 +103,6 @@ static struct LCM_UTIL_FUNCS lcm_util;
 #define FALSE 0
 #endif
 
-#ifdef CONFIG_MTK_MT6382_BDG
-#define DSC_ENABLE
-#endif
 
 #if defined(CONFIG_RT5081_PMU_DSV) || defined(CONFIG_MT6370_PMU_DSV)
 static struct regulator *disp_bias_pos;
@@ -614,9 +611,6 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.horizontal_frontporch = 165;
 	params->dsi.horizontal_active_pixel = FRAME_WIDTH;
 	params->dsi.ssc_disable = 1;
-#ifdef CONFIG_MTK_MT6382_BDG
-	params->dsi.bdg_ssc_disable = 1;
-#endif
 	params->dsi.dsc_enable = 0;
 #ifndef CONFIG_FPGA_EARLY_PORTING
 	/* this value must be in MTK suggested table */
@@ -624,9 +618,6 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.bdg_dsc_enable = 1;
 	params->dsi.PLL_CLOCK = 380; //with dsc
 #else
-#ifdef CONFIG_MTK_MT6382_BDG
-	params->dsi.bdg_dsc_enable = 0;
-#endif
 	//params->dsi.PLL_CLOCK = 500; //without dsc
 #endif
 	params->dsi.PLL_CK_CMD = 480;
