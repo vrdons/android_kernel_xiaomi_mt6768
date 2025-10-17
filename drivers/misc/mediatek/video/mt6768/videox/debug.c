@@ -70,6 +70,7 @@
 #endif
 #include "layering_rule.h"
 #include "ddp_clkmgr.h"
+#include "ddp_disp_bdg.h"
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
 static struct dentry *mtkfb_dbgfs;
