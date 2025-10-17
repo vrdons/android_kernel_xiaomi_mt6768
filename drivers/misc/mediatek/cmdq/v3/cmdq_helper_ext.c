@@ -37,7 +37,6 @@
 #endif
 
 #include <linux/of_platform.h>
-#include "cmdq-bdg.h"
 
 #define CMDQ_GET_COOKIE_CNT(thread) \
 	(CMDQ_REG_GET32(CMDQ_THR_EXEC_CNT(thread)) & CMDQ_MAX_COOKIE_VALUE)
