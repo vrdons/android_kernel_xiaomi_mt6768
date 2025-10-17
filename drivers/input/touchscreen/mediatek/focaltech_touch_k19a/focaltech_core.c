@@ -846,16 +846,12 @@ int enter_palm_mode(struct fts_ts_data *data)
 	u8 mode1 = 0;
 	fts_read_reg(0x9A, &mode0);
 	fts_read_reg(0x9B, &mode1);
-	if (0x01 == mode0 && 0x00 == mode1) {
-		update_palm_sensor_value(0);
-	} else if (0x01 == mode0 && 0x01 == mode1) {
+	if (0x01 == mode0 && 0x01 == mode1) {
 		FTS_INFO("get packet palm on event.\n");
-		update_palm_sensor_value(1);
 		input_report_key(data->input_dev, 523, 1);
 		input_sync(data->input_dev);
 		input_report_key(data->input_dev, 523, 0);
 		input_sync(data->input_dev);
-
 	}
 
 	return 0;
@@ -2210,7 +2206,11 @@ static const struct dev_pm_ops fts_dev_pm_ops = {
 /*****************************************************************************
 * TP Driver
 *****************************************************************************/
-extern is_nvt;
+#ifdef CONFIG_TOUCHSCREEN_NT36xxx_SPI
+extern int is_nvt;
+#else
+static int is_nvt = 0;
+#endif
 static int fts_ts_probe(struct spi_device *spi)
 {
 	int ret = 0;
