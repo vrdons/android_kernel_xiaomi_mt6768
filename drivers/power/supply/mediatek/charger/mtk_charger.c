@@ -1304,7 +1304,7 @@ int charger_get_vbus(void)
 }
 
 /*K19A HQ-124114 K19A charger of jeita by wangqi at 2021/4/16 start*/
-int hq_config()
+int hq_config(void)
 {
 	int config;
 
@@ -1453,7 +1453,8 @@ void do_sw_jeita_state_machine(struct charger_manager *info)
 		} else if (sw_jeita->sm == TEMP_T0_TO_T1) {
 			sw_jeita->cc = info->data.jeita_temp_t0_to_t1_cc;
 			sw_jeita->cv = info->data.jeita_temp_t0_to_t1_cv;
-		} else if (sw_jeita->sm == TEMP_BELOW_T0)
+		} else if (sw_jeita->sm == TEMP_BELOW_T0) {
+			sw_jeita->cc = info->data.jeita_temp_below_t0_cc;
 			sw_jeita->cv = info->data.jeita_temp_below_t0_cv;
 		} else if (sw_jeita->sm == TEMP_BELOW_NEG_T0) {
 			sw_jeita->cv = info->data.jeita_temp_below_t0_cv;

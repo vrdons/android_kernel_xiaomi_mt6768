@@ -47,8 +47,6 @@
 /*K19A HQ-123457 K19A charger of profile by wangqi at 2021/4/22 start*/
 #define SWD_MIN_VOLTAGE   686945
 #define SWD_MAX_VOLTAGE   759255
-#define COSMX_MIN_VOLTAGE      848730
-#define COSMX_MAX_VOLTAGE      938070
 #define SWD_SEC_MIN_VOLTAGE		1295800
 #define SWD_SEC_MAX_VOLTAGE		1432200
 #define SECRET_MIN_VOLTAGE		1691000
@@ -57,9 +55,13 @@
 
 #define NVT_MIN_VOLTAGE		492000
 #define NVT_MAX_VOLTAGE		544500
+#ifdef TARGET_PRODUCT_SELENE
+#define COSMX_MIN_VOLTAGE	848730
+#define COSMX_MAX_VOLTAGE	938070
+#else
 #define COSMX_MIN_VOLTAGE	570000
 #define COSMX_MAX_VOLTAGE	630000
-
+#endif
 /*
  * if ACTIVE_TABLE == 0 , use DTSI table
  * if ACTIVE_TABLE == x , use .h table
