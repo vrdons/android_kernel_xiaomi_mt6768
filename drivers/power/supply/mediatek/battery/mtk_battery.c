@@ -433,7 +433,7 @@ static int bms_get_property(struct power_supply *psy,
 			val->intval = 1;
 		} else
 #endif
-			val->intval = gm.battery_id;
+		val->intval = gm.battery_id;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 #ifdef CONFIG_MTK_ENG_BUILD
@@ -544,6 +544,7 @@ static int battery_get_property(struct power_supply *psy,
 	int fgcurrent = 0;
 	bool b_ischarging = 0;
 	int input_suspend;
+	int qmax = 5020 * 1000;
 	u32 type;
 	static struct charger_device *primary_charger;
 	/* Huaqin add for HQ-124361 by miaozhichao at 2021/5/14 start */
@@ -576,10 +577,13 @@ static int battery_get_property(struct power_supply *psy,
 		cycle_count = gm.bat_cycle;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_TYPE:
-		//charger_dev_get_charger_type(primary_charger, &type);
-		type = get_charger_type();
-		pr_debug("ljj charger_dev_get_charger_type = %d\n",type);
+		charger_dev_get_charger_type(primary_charger, &type);
+
+#ifdef TARGET_PRODUCT_SELENE
 		if (type > 9 || type < 0)
+#else
+		if (type > 3 || type < 0)
+#endif
 			type = 0;
 		val->intval = type;
 		break;

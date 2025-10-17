@@ -49,14 +49,12 @@ struct charger_data;
 #define CHRLOG_DEBUG_LEVEL   2
 
 extern int chr_get_debug_level(void);
-/*K19A-104 wangchao modify debug log at 2021/4/8 start*/
 #define chr_err(fmt, args...)					\
 do {								\
 	if (chr_get_debug_level() >= CHRLOG_ERROR_LEVEL) {	\
-		pr_err(fmt, ##args);				\
+		pr_notice(fmt, ##args);				\
 	}							\
 } while (0)
-/*K19A-104 wangchao modify debug log at 2021/4/8 end*/
 #define chr_info(fmt, args...)					\
 do {								\
 	if (chr_get_debug_level() >= CHRLOG_ERROR_LEVEL) {	\
@@ -478,7 +476,6 @@ struct charger_manager {
 	struct sock *daemo_nl_sk;
 	u_int g_scd_pid;
 	struct scd_cmd_param_t_1 sc_data;
-};
 
 	/*K19A HQ-124491 K19A for ffc parameters by langjunjun at 2021/6/15 start*/
 	bool enable_sw_ffc;
