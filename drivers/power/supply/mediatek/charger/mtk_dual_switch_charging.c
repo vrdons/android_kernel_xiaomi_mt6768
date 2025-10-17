@@ -363,13 +363,9 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 				info->data.apple_2_1a_charger_current;
 		pdata->charging_current_limit =
 				info->data.apple_2_1a_charger_current;
-	} else if (info->chr_type == POWER_SUPPLY_TYPE_USB_HVDCP) {
-          pdata->input_current_limit = 2000000;
-          pdata->charging_current_limit = 6000000;
-          pr_err("POWER_SUPPLY_TYPE_USB_HVDCP set icl\n");
 	}
 /*K19A HQ-133296 K19A charger of low temperature by wangqi at 2021/4/27 start*/
-#if 0
+#ifndef TARGET_PRODUCT_SELENE
 	if (info->enable_sw_jeita) {
 		if (IS_ENABLED(CONFIG_USBIF_COMPLIANCE)
 		    && info->chr_type == STANDARD_HOST)
@@ -381,7 +377,7 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 			}
 		}
 	}
-#endif
+#else
 /*K19A HQ-133296 K19A charger of low temperature by wangqi at 2021/4/27 end*/
 
 	/*K19A HQ-124114 K19A charger of jeita by wangqi at 2021/4/16 start*/
@@ -390,6 +386,7 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 			pdata->charging_current_limit = info->sw_jeita.cc;
 	}
 	/*K19A HQ-124114 K19A charger of jeita by wangqi at 2021/4/16 start*/
+#endif
 	/*
 	 * If thermal current limit is less than charging IC's minimum
 	 * current setting, disable the charger by setting its current
