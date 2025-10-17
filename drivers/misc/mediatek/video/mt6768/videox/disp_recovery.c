@@ -770,6 +770,7 @@ static int primary_display_check_recovery_worker_kthread(void *data)
 			DISPERR(
 				"[ESD]LCM recover fail. Try time:%d. Disable esd check\n",
 				esd_try_cnt);
+			primary_display_esd_check_enable(0);
 		} else if (recovery_done == 1) {
 			DISPCHECK("[ESD]esd recovery success\n");
 			recovery_done = 0;
@@ -813,8 +814,6 @@ next:		if(!atomic_read(&lcm_ready)){
 /* Huaqin modify for HQ-124138 by dongtingchi at 2021/04/29 end */
 	return 0;
 }
-
-extern int32_t nvt_update_firmware(char *firmware_name);
 
 /* ESD RECOVERY */
 int primary_display_esd_recovery(void)
@@ -886,11 +885,6 @@ int primary_display_esd_recovery(void)
 	/*after dsi_stop, we should enable the dsi basic irq.*/
 	dsi_basic_irq_enable(DISP_MODULE_DSI0, NULL);
 	disp_lcm_suspend(primary_get_lcm());
-	if (primary_get_lcm()->drv->suspend_power) {
-		primary_get_lcm()->drv->suspend_power();
-	} else {
-		printk("[%s]: ESD recovery,lcm suspend power fail!\n", __func__);
-	}
 	DISPCHECK("[POWER]lcm suspend[end]\n");
 
 	mmprofile_log_ex(mmp_r, MMPROFILE_FLAG_PULSE, 0, 7);

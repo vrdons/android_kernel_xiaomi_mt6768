@@ -304,7 +304,6 @@ static const char *_dsi_vdo_mode_parse_state(unsigned int state)
 
 enum DSI_STATUS DSI_DumpRegisters(enum DISP_MODULE_ENUM module, int level)
 {
-#if 0
 	u32 i = 0;
 	u32 k = 0;
 
@@ -387,7 +386,6 @@ enum DSI_STATUS DSI_DumpRegisters(enum DISP_MODULE_ENUM module, int level)
 #endif
 		}
 	}
-#endif
 	return DSI_STATUS_OK;
 }
 
@@ -878,9 +876,7 @@ int ddp_dsi_porch_setting(enum DISP_MODULE_ENUM module, void *handle,
 		if (type == DSI_VFP) {
 			DISPINFO("set dsi%d vfp to %d\n", i, value);
 			DSI_OUTREG32(handle, &DSI_REG[i]->DSI_VFP_NL, value);
-		/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 start */
-			if (pgc->vfp_chg_sync_bdg && bdg_is_bdg_connected() == 1)
-		/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 end */
+			if (bdg_is_bdg_connected() == 1)
 				ddp_dsi_set_bdg_porch_setting(module, handle, value);
 		/* Huaqin modify for HQ-141505 by caogaojie at 2021/06/18 start */
 			if(value == 54){
@@ -950,9 +946,6 @@ static void DSI_Get_Porch_Addr(enum DISP_MODULE_ENUM module,
 	}
 }
 
-/* Huaqin add for K19S-31 by jiangyue at 2022/01/14 start */
-extern int mtk_rxtx_ratio;
-/* Huaqin add for K19S-31 by jiangyue at 2022/01/14 end */
 void DSI_Config_VDO_Timing_with_DSC(enum DISP_MODULE_ENUM module,
 	struct cmdqRecStruct *cmdq, struct LCM_DSI_PARAMS *dsi_params)
 {
@@ -1028,9 +1021,7 @@ void DSI_Config_VDO_Timing_with_DSC(enum DISP_MODULE_ENUM module,
 		t_hbp = 4;
 		ps_wc = dsi_params->horizontal_active_pixel * dsiTmpBufBpp / 8;
 		t_hbllp = 16 * dsi_params->LANE_NUM;
-/* Huaqin modify for K19S-31 by jiangyue at 2022/01/14 start */
-		ap_tx_total_word_cnt = (get_bdg_line_cycle() * lanes * mtk_rxtx_ratio + 99) / 100;
-/* Huaqin modify for K19S-31 by jiangyue at 2022/01/14 end */
+		ap_tx_total_word_cnt = (get_bdg_line_cycle() * lanes * RXTX_RATIO + 99) / 100;
 
 		switch (dsi_params->mode) {
 		case DSI_CMD_MODE:
@@ -2180,7 +2171,6 @@ void DSI_PHY_TIMCONFIG(enum DISP_MODULE_ENUM module,
 		cycle_time = cycle_time - 0x01;
 	}
 
-#define NS_TO_CYCLE(n, c)	((n) / (c))
 	else {
 		DISPINFO("[dsi_dsi.c] PLL clock should not be 0!\n");
 		ASSERT(0);
@@ -2326,16 +2316,18 @@ void DSI_PHY_TIMCONFIG(enum DISP_MODULE_ENUM module,
 		if (timcon3.CLK_HS_PRPR < 1)
 			timcon3.CLK_HS_PRPR = 1;
 
-	timcon3.CLK_HS_EXIT =
-		(dsi_params->CLK_HS_EXIT == 0) ?
-		(0x2 * timcon0.LPX) : dsi_params->CLK_HS_EXIT;
-	timcon3.CLK_HS_POST =
-		(dsi_params->CLK_HS_POST == 0) ?
-		NS_TO_CYCLE((0x60 + 0x34 * ui), cycle_time) :
-		dsi_params->CLK_HS_POST;
+		timcon3.CLK_HS_EXIT = (dsi_params->CLK_HS_EXIT == 0) ?
+			(0x2 * timcon0.LPX) : dsi_params->CLK_HS_EXIT;
+		timcon3.CLK_HS_POST = (dsi_params->CLK_HS_POST == 0) ?
+			NS_TO_CYCLE((0x60 + 0x34 * ui), cycle_time) :
+			dsi_params->CLK_HS_POST;
+	}
 
-	DISP_LOG_PRINT(ANDROID_LOG_INFO, "DSI",
-			"[DISP] - kernel - %s, HS_TRAIL = %d, HS_ZERO = %d, HS_PRPR = %d, LPX = %d, TA_GET = %d, TA_SURE = %d, TA_GO = %d, CLK_TRAIL = %d, CLK_ZERO = %d, CLK_HS_PRPR = %d\n",
+	if (bdg_is_bdg_connected() == 1)
+		data_phy_cycle = (timcon1.DA_HS_EXIT + 1) + timcon0.LPX +
+					timcon0.HS_PRPR + timcon0.HS_ZERO + 1;
+/*K19A K19A-138 solve mipi timing  by feiwen at 2021/5/19 start*/
+	printk("[DISP] - kernel - %s, HS_TRAIL = %d, HS_ZERO = %d, HS_PRPR = %d, LPX = %d, TA_GET = %d, TA_SURE = %d, TA_GO = %d, CLK_TRAIL = %d, CLK_ZERO = %d, CLK_HS_PRPR = %d, cycle_time = %d\n",
 			__func__, timcon0.HS_TRAIL, timcon0.HS_ZERO,
 			timcon0.HS_PRPR, timcon0.LPX,
 			timcon1.TA_GET, timcon1.TA_SURE,

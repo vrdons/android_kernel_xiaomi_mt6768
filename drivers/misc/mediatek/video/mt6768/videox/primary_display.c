@@ -86,6 +86,7 @@
 #include "mtk_vcorefs_manager.h"
 #endif
 
+#include "ddp_disp_bdg.h"
 #include "disp_lowpower.h"
 #include "disp_recovery.h"
 /* #include "mt_spm_sodi_cmdq.h" */
@@ -496,14 +497,36 @@ struct display_primary_path_context *_get_context(void)
 
 void _primary_path_lock(const char *caller)
 {
+	dprec_logger_start(DPREC_LOGGER_PRIMARY_MUTEX, 0, 0);
 	disp_sw_mutex_lock(&(pgc->lock));
+	mutex_time_start = sched_clock();
 	pgc->mutex_locker = (char *)caller;
 }
 
 void _primary_path_unlock(const char *caller)
 {
 	pgc->mutex_locker = NULL;
+
+	mutex_time_end = sched_clock();
+	mutex_time_period = mutex_time_end - mutex_time_start;
+	if (mutex_time_period > 300000000) {
+		DISPCHECK("mutex_release_timeout1 <%lld ns>\n",
+			mutex_time_period);
+		dump_stack();
+	}
+
 	disp_sw_mutex_unlock(&(pgc->lock));
+
+	mutex_time_end1 = sched_clock();
+	mutex_time_period1 = mutex_time_end1 - mutex_time_start;
+	if ((mutex_time_period < 300000000 && mutex_time_period1 > 300000000) ||
+	   (mutex_time_period < 300000000 && mutex_time_period1 < 0)) {
+		DISPCHECK("mutex_release_timeout2 <%lld ns>,<%lld ns>\n",
+			mutex_time_period1, mutex_time_period);
+		dump_stack();
+	}
+
+	dprec_logger_done(DPREC_LOGGER_PRIMARY_MUTEX, 0, 0);
 }
 
 static const char *session_mode_spy(unsigned int mode)
@@ -5260,6 +5283,7 @@ int primary_display_resume(void)
 	enum DISP_STATUS ret = DISP_STATUS_OK;
 	struct ddp_io_golden_setting_arg gset_arg;
 	int i, skip_update = 0;
+	struct disp_ddp_path_config *data_config;
 #ifdef MTK_FB_MMDVFS_SUPPORT
 	unsigned long long bandwidth;
 	unsigned int in_fps = 60;
@@ -8668,9 +8692,11 @@ int _set_lcm_cmd_by_cmdq(unsigned int *lcm_cmd, unsigned int *lcm_count,
 		mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd,
 			MMPROFILE_FLAG_PULSE, 1, 2);
 		cmdqRecReset(cmdq_handle_lcm_cmd);
+		_cmdq_insert_wait_frame_done_token_mira(cmdq_handle_lcm_cmd);
 		disp_lcm_set_lcm_cmd(pgc->plcm, cmdq_handle_lcm_cmd, lcm_cmd,
 			lcm_count, lcm_value);
-		_cmdq_flush_config_handle_mira(cmdq_handle_lcm_cmd, 1);
+		/*Async flush by cmdq*/
+		_cmdq_flush_config_handle_mira(cmdq_handle_lcm_cmd, 0);
 		DISPCHECK("[CMD]%s ret=%d\n", __func__, ret);
 	} else {
 		mmprofile_log_ex(ddp_mmp_get_events()->primary_set_bl,
@@ -8712,8 +8738,8 @@ int primary_display_setlcm_cmd(unsigned int *lcm_cmd, unsigned int *lcm_count,
 	mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd,
 		MMPROFILE_FLAG_START, 0, 0);
 
-	_primary_path_switch_dst_lock();
-	_primary_path_lock(__func__);
+	_primary_path_switch_dst_unlock();
+	_primary_path_unlock(__func__);
 
 	if (pgc->state == DISP_SLEPT) {
 		DISPCHECK("Sleep State set backlight invalid\n");
@@ -9043,78 +9069,6 @@ static int _screen_cap_by_cpu(unsigned int mva, enum UNIFIED_COLOR_FMT ufmt,
 	return 0;
 }
 
-#ifdef CONFIG_MTK_IOMMU_V2
-int primary_display_capture_framebuffer_ovl(unsigned long pbuf,
-	enum UNIFIED_COLOR_FMT ufmt)
-{
-	int ret = 0;
-	struct ion_client *ion_display_client = NULL;
-	struct ion_handle *ion_display_handle = NULL;
-	unsigned long mva = 0;
-	unsigned int w_xres = primary_display_get_width();
-	unsigned int h_yres = primary_display_get_height();
-	unsigned int pixel_byte = primary_display_get_bpp() / 8;
-	int buffer_size = h_yres * w_xres * pixel_byte;
-	enum DISP_MODULE_ENUM after_eng = DISP_MODULE_OVL0;
-	int tmp;
-
-	DISPMSG("primary capture: begin\n");
-
-	disp_sw_mutex_lock(&(pgc->capture_lock));
-
-	if (primary_display_is_sleepd()) {
-		memset((void *)pbuf, 0, buffer_size);
-		DISPMSG("primary capture: Fail black End\n");
-		goto out;
-	}
-
-	ion_display_client = disp_ion_create("disp_cap_ovl");
-	if (ion_display_client == NULL) {
-		DISPMSG("primary capture:Fail to create ion\n");
-		ret = -1;
-		goto out;
-	}
-
-	ion_display_handle = disp_ion_alloc(ion_display_client,
-					    ION_HEAP_MULTIMEDIA_MAP_MVA_MASK,
-					    pbuf, buffer_size);
-	if (!ion_display_handle) {
-		DISPMSG("primary capture:Fail to allocate buffer\n");
-		ret = -1;
-		goto out;
-	}
-
-	disp_ion_get_mva(ion_display_client, ion_display_handle,
-		&mva, 0, DISP_M4U_PORT_DISP_WDMA0);
-	disp_ion_cache_flush(ion_display_client, ion_display_handle,
-		ION_CACHE_INVALID_BY_RANGE);
-
-	tmp = disp_helper_get_option(DISP_OPT_SCREEN_CAP_FROM_DITHER);
-	if (tmp == 0)
-		after_eng = DISP_MODULE_OVL0;
-
-	if (primary_display_cmdq_enabled())
-		_screen_cap_by_cmdq((unsigned int)mva, ufmt, after_eng);
-	else
-		_screen_cap_by_cpu((unsigned int)mva, ufmt, after_eng);
-
-	disp_ion_cache_flush(ion_display_client, ion_display_handle,
-		ION_CACHE_INVALID_BY_RANGE);
-
-out:
-	if (ion_display_client)
-		disp_ion_free_handle(ion_display_client, ion_display_handle);
-
-	if (ion_display_client)
-		disp_ion_destroy(ion_display_client);
-
-	disp_sw_mutex_unlock(&(pgc->capture_lock));
-	DISPMSG("primary capture: end\n");
-	return ret;
-}
-
-#else
-
 int primary_display_capture_framebuffer_ovl(unsigned long pbuf,
 	enum UNIFIED_COLOR_FMT ufmt)
 {
@@ -9186,7 +9140,6 @@ out:
 	DISPMSG("primary capture: end\n");
 	return ret;
 }
-#endif
 
 int primary_display_capture_framebuffer(unsigned long pbuf)
 {
@@ -10579,9 +10532,8 @@ void primary_display_dynfps_chg_fps(int cfg_id)
 			return;
 		}
 		cmdqRecReset(qhandle);
-/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 start */
-		if (!pgc->vfp_chg_sync_bdg) {
-/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 end */
+
+		if (bdg_is_bdg_connected() != 1) {
 			if (need_send_cmd) {
 				cmdqRecWait(qhandle, CMDQ_EVENT_MUTEX0_STREAM_EOF);
 				DISPMSG("%s,send cmd to lcm in VFP solution\n", __func__);
@@ -10595,10 +10547,8 @@ void primary_display_dynfps_chg_fps(int cfg_id)
 
 			cmdqRecFlushAsync(qhandle);
 		} else {
-/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 start */
-			if (bdg_is_bdg_connected() == 1) {
-				cmdqRecWait(qhandle, CMDQ_EVENT_MUTEX0_STREAM_EOF);
-/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 end */
+			cmdqRecWait(qhandle, CMDQ_EVENT_MUTEX0_STREAM_EOF);
+
 			/* stop dsi vdo mode */
 			dpmgr_path_build_cmdq(primary_get_dpmgr_handle(),
 				qhandle, CMDQ_STOP_VDO_MODE, 0);
@@ -10613,10 +10563,8 @@ void primary_display_dynfps_chg_fps(int cfg_id)
 
 			ddp_mutex_set_sof_wait(dpmgr_path_get_mutex(
 				primary_get_dpmgr_handle()), qhandle, 0);
-/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 start */
-				cmdqRecFlush(qhandle);
-			}
-/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 end */
+
+			cmdqRecFlush(qhandle);
 		}
 	}
 	cmdqRecDestroy(qhandle);
