@@ -53,6 +53,9 @@
 #include "inc/tcpci_typec.h"
 
 
+#define __BQ25890H__ 1
+#include "../../../../power/supply/mediatek/charger/bq2589x.h"
+
 #if 1 /*  #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0))*/
 #include <linux/sched/rt.h>
 #endif /* #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)) */
@@ -97,6 +100,9 @@ struct wusb3801_chip {
 extern	uint8_t     typec_cc_orientation;
 #endif	/* __TEST_CC_PATCH__ */
 static struct i2c_client *w_client;
+
+static bool g_irq_3801_flag = false;
+struct wusb3801_chip *g_3801_chip = NULL;
 
 static int wusb3801_read_device(void *client, u32 reg, int len, void *dst)
 {
@@ -349,14 +355,29 @@ static void wusb3801_irq_work_handler(struct kthread_work *work)
 	tcpci_unlock_typec(tcpc);
 }
 
+void wusb3801_intr_handler_resume(void)
+{
+	if (g_irq_3801_flag == true) {
+		g_irq_3801_flag = false;
+		pr_err("%s:ljj  g_irq_3801_flag is true\n", __func__);
+		__pm_wakeup_event(&g_3801_chip->irq_wake_lock, WUSB3801_IRQ_WAKE_TIME);
+		kthread_queue_work(&g_3801_chip->irq_worker, &g_3801_chip->irq_work);
+	}
+	return;
+}
 
 static irqreturn_t wusb3801_intr_handler(int irq, void *data)
 {
 	struct wusb3801_chip *chip = data;
 
-	__pm_wakeup_event(&chip->irq_wake_lock, WUSB3801_IRQ_WAKE_TIME);
-
-	kthread_queue_work(&chip->irq_worker, &chip->irq_work);
+	if (bq2589x_get_cdp_status() == true) {
+		pr_debug("%s:ljj  bq2589x_get_cdp_status is true, returned!!!\n", __func__);
+		g_irq_3801_flag = true;
+		g_3801_chip = chip;
+	} else {
+		__pm_wakeup_event(&chip->irq_wake_lock, WUSB3801_IRQ_WAKE_TIME);
+		kthread_queue_work(&chip->irq_worker, &chip->irq_work);
+	}
 	return IRQ_HANDLED;
 }
 
