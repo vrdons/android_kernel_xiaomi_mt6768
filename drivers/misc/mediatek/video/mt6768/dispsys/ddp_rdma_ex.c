@@ -620,11 +620,7 @@ void rdma_set_ultra_l(unsigned int idx, unsigned int bpp, void *handle,
 	/* get fifo parameters */
 	switch (rdma_golden_setting->mmsys_clk) {
 	case MMSYS_CLK_LOW:
-#ifdef CONFIG_MTK_HIGH_FRAME_RATE
-		mmsysclk = 312;
-#else
 		mmsysclk = 230;
-#endif
 		break;
 	case MMSYS_CLK_HIGH:
 		mmsysclk = 457;

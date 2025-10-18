@@ -552,13 +552,7 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.dsc_enable = 0;
 #ifndef CONFIG_FPGA_EARLY_PORTING
 	/* this value must be in MTK suggested table */
-#ifdef DSC_ENABLE
-	params->dsi.bdg_dsc_enable = 1;
-	params->dsi.PLL_CLOCK = 380; //with dsc
-#else
-	params->dsi.bdg_dsc_enable = 0;
 	params->dsi.PLL_CLOCK = 550; //without dsc
-#endif
 	params->dsi.PLL_CK_CMD = 480;
 #else
 	params->dsi.pll_div1 = 0;

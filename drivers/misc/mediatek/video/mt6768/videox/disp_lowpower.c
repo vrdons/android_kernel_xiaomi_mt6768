@@ -68,7 +68,6 @@
 #ifdef MTK_FB_MMDVFS_SUPPORT
 //#include "mmdvfs_mgr.h"
 #endif
-#include "ddp_disp_bdg.h"
 
 /* device tree */
 #include <linux/of.h>
@@ -160,6 +159,7 @@ static struct golden_setting_context *_get_golden_setting_context(void)
 		g_golden_setting_context.is_wrot_sram = 0;
 		g_golden_setting_context.is_rsz_sram = 0;
 		g_golden_setting_context.mmsys_clk = MMSYS_CLK_LOW;
+
 		/* primary_display */
 		g_golden_setting_context.dst_width =
 			disp_helper_get_option(DISP_OPT_FAKE_LCM_WIDTH);
@@ -293,18 +293,17 @@ int _blocking_flush(void)
 	return ret;
 }
 
-extern void bdg_dsi_vfp_gce(unsigned int vfp);
 int primary_display_dsi_vfp_change(int state)
 {
 	int ret = 0;
 	struct cmdqRecStruct *handle = NULL;
 	struct LCM_PARAMS *params;
-	unsigned int apply_vfp = 0;
 
-	/* Huaqin modify for HQ-136147 by caogaojie at 2021/06/30 start */
-	cmdqRecCreate(CMDQ_SCENARIO_DISP_ESD_CHECK, &handle);
-	/* Huaqin modify for HQ-136147 by caogaojie at 2021/06/30 end */
+	cmdqRecCreate(CMDQ_SCENARIO_PRIMARY_DISP, &handle);
 	cmdqRecReset(handle);
+
+	/* make sure token rdma_sof is clear */
+	cmdqRecClearEventToken(handle, CMDQ_EVENT_DISP_RDMA0_SOF);
 
 	/* for chips later than M17,VFP can be set at anytime
 	 * So don't need to wait-SOF here
@@ -315,42 +314,14 @@ int primary_display_dsi_vfp_change(int state)
 	if (state == 1) {
 		/* need calculate fps by vdo mode params */
 		/* set_fps(55); */
-		apply_vfp = params->dsi.vertical_frontporch_for_low_power;
+		dpmgr_path_ioctl(primary_get_dpmgr_handle(), handle,
+			DDP_DSI_PORCH_CHANGE,
+			&params->dsi.vertical_frontporch_for_low_power);
 	} else if (state == 0) {
-		apply_vfp = params->dsi.vertical_frontporch;
+		dpmgr_path_ioctl(primary_get_dpmgr_handle(), handle,
+			DDP_DSI_PORCH_CHANGE, &params->dsi.vertical_frontporch);
 	}
-
-	if (state == 1 || state == 0) {
-	/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 start */
-		if (pgc->vfp_chg_sync_bdg && bdg_is_bdg_connected() == 1) {
-	/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 end */
-			cmdqRecWait(handle, CMDQ_EVENT_MUTEX0_STREAM_EOF);
-
-			/* 2.stop dsi vdo mode */
-			dpmgr_path_build_cmdq(primary_get_dpmgr_handle(), handle,
-						CMDQ_STOP_VDO_MODE, 0);
-
-			dpmgr_path_ioctl(primary_get_dpmgr_handle(), handle,
-						DDP_DSI_PORCH_CHANGE, &apply_vfp);
-
-			dpmgr_path_build_cmdq(primary_get_dpmgr_handle(), handle,
-						CMDQ_START_VDO_MODE, 0);
-			dpmgr_path_trigger(primary_get_dpmgr_handle(), handle, CMDQ_ENABLE);
-
-			ddp_mutex_set_sof_wait(dpmgr_path_get_mutex(primary_get_dpmgr_handle()),
-						handle, 0);
-	/* Huaqin modify for HQ-141739 by caogaojie at 2021/07/05 start */
-			cmdqRecFlush(handle);
-	/* Huaqin modify for HQ-141739 by caogaojie at 2021/07/05 end */
-		} else {
-			dpmgr_path_ioctl(primary_get_dpmgr_handle(), handle,
-						DDP_DSI_PORCH_CHANGE, &apply_vfp);
-		}
-	}
-/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 start */
-	if (!pgc->vfp_chg_sync_bdg)
-		cmdqRecFlushAsync(handle);
-/* Huaqin modify for HQ-179522 by jiangyue at 2022/01/24 end */
+	cmdqRecFlushAsync(handle);
 	cmdqRecDestroy(handle);
 	return ret;
 }
@@ -757,6 +728,8 @@ void _vdo_mode_enter_idle(void)
 	unsigned int out_fps = 60;
 #endif
 
+	DISPINFO("[disp_lowpower]%s\n", __func__);
+
 	/* backup for DL <-> DC */
 	idlemgr_pgc->session_mode_before_enter_idle = primary_get_sess_mode();
 
@@ -893,7 +866,6 @@ void _vdo_mode_leave_idle(void)
 
 void _cmd_mode_enter_idle(void)
 {
-
 	DISPINFO("[disp_lowpower]%s\n", __func__);
 
 	/* need leave share sram for disable mmsys clk */
@@ -928,7 +900,6 @@ void _cmd_mode_leave_idle(void)
 	unsigned int in_fps = 60;
 	unsigned int out_fps = 60;
 	int stable = 0;
-
 #endif
 
 	DISPMSG("[disp_lowpower]%s\n", __func__);

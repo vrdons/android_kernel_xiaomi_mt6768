@@ -229,6 +229,11 @@ UINT32 DSI_dcs_read_lcm_reg_v4(enum DISP_MODULE_ENUM module,
 	UINT8 cmd, UINT8 *user_buffer, UINT8 buffer_size, bool sendhs);
 int ddp_dsi_build_cmdq(enum DISP_MODULE_ENUM module,
 	void *cmdq_trigger_handle, enum CMDQ_STATE state);
+enum DSI_STATUS DSI_Start(enum DISP_MODULE_ENUM module,
+	struct cmdqRecStruct *cmdq);
+enum DSI_STATUS DSI_Stop(enum DISP_MODULE_ENUM module,
+	struct cmdqRecStruct *cmdq);
+enum DSI_STATUS DSI_Reset(enum DISP_MODULE_ENUM module, struct cmdqRecStruct *cmdq);
 #ifdef __cplusplus
 }
 #endif

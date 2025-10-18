@@ -151,8 +151,9 @@ do {	\
 	(x == DISP_MODULE_DSIDUAL ? 1 : DSI_MODULE_to_ID(x))
 #define DSI_MODULE_to_ID(x)	(x == DISP_MODULE_DSI0 ? 0 : 1)
 #define DIFF_CLK_LANE_LP (0x10)
-
-
+/* Huaqin modify for HQ-141505 by caogaojie at 2021/06/18 start */
+int real_refresh;
+/* Huaqin modify for HQ-141505 by caogaojie at 2021/06/18 end */
 /*****************************************************************************/
 struct t_condition_wq {
 	wait_queue_head_t wq;
@@ -846,6 +847,13 @@ int ddp_dsi_porch_setting(enum DISP_MODULE_ENUM module, void *handle,
 		if (type == DSI_VFP) {
 			DISPINFO("set dsi%d vfp to %d\n", i, value);
 			DSI_OUTREG32(handle, &DSI_REG[i]->DSI_VFP_NL, value);
+			if(value == 54){
+				real_refresh = 90;
+			}else if(value == 1290){
+				real_refresh = 60;
+			}else{
+				real_refresh = 45;
+			}
 		}
 		if (type == DSI_VSA) {
 			DISPINFO("set dsi%d vsa to %d\n", i, value);
@@ -2002,6 +2010,21 @@ enum DSI_STATUS DSI_Start(enum DISP_MODULE_ENUM module,
 			DSI_REG[0]->DSI_START, DSI_START, 0);
 		DSI_OUTREGBIT(cmdq, struct DSI_START_REG,
 			DSI_REG[0]->DSI_START, DSI_START, 1);
+	}
+
+	return DSI_STATUS_OK;
+}
+
+
+enum DSI_STATUS DSI_Stop(enum DISP_MODULE_ENUM module,
+	struct cmdqRecStruct *cmdq)
+{
+	if (module == DISP_MODULE_DSI1) {
+		DSI_OUTREGBIT(cmdq, struct DSI_START_REG,
+			DSI_REG[1]->DSI_START, DSI_START, 0);
+	} else {
+		DSI_OUTREGBIT(cmdq, struct DSI_START_REG,
+			DSI_REG[0]->DSI_START, DSI_START, 0);
 	}
 
 	return DSI_STATUS_OK;

@@ -812,6 +812,8 @@ next:		if(!atomic_read(&lcm_ready)){
 	return 0;
 }
 
+extern int32_t nvt_update_firmware(char *firmware_name);
+
 /* ESD RECOVERY */
 int primary_display_esd_recovery(void)
 {

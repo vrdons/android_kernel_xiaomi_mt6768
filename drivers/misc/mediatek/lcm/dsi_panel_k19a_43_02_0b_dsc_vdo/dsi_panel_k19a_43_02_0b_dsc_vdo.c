@@ -125,8 +125,6 @@ static struct LCM_UTIL_FUNCS lcm_util;
 #define FALSE 0
 #endif
 
-//#define DSC_ENABLE
-//#define DSC_ENABLE
 
 /* i2c control start */
 
@@ -585,15 +583,7 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.dsc_enable = 0;
 #ifndef CONFIG_FPGA_EARLY_PORTING
 	/* this value must be in MTK suggested table */
-#ifdef DSC_ENABLE
-	/* Huaqin modify for K19S-31 by jiangyue at 2022/01/14 start */
-    params->dsi.bdg_dsc_enable = 1;
-    params->dsi.PLL_CLOCK = 360; //with dsc
-/* Huaqin modify for K19S-31 by jiangyue at 2022/01/14 end */
-#else
-	params->dsi.bdg_dsc_enable = 0;
 	params->dsi.PLL_CLOCK = 574; //without dsc
-#endif
 	params->dsi.PLL_CK_CMD = 480;
 #else
 	params->dsi.pll_div1 = 0;

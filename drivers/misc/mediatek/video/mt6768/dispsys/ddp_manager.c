@@ -1306,6 +1306,7 @@ int dpmgr_path_trigger(disp_path_handle dp_handle, void *trigger_loop_handle,
 		ddp_get_scenario_name(handle->scenario));
 	modules = ddp_get_scenario_list(handle->scenario);
 	module_num = ddp_get_module_num(handle->scenario);
+
 	ddp_mutex_enable(handle->hwmutexid, handle->scenario, handle->mode,
 		trigger_loop_handle);
 	for (i = 0; i < module_num; i++) {
