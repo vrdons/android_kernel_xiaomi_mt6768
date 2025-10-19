@@ -387,6 +387,7 @@ static int alshub_factory_enable_sensor(bool enable_disable,
 {
 	int err = 0;
 	struct alspshub_ipi_data *obj = obj_ipi_data;
+	int android_enable = 0;
 
 	if (enable_disable == true)
 		WRITE_ONCE(obj->als_factory_enable, true);
@@ -400,11 +401,17 @@ static int alshub_factory_enable_sensor(bool enable_disable,
 			return -1;
 		}
 	}
+    android_enable = READ_ONCE(obj->als_android_enable);
+    if(android_enable == false) {
+    pr_warn("%s: android_enable[%u] execute power request[%s]\n", __func__, android_enable, (enable_disable == true)?("on"):("off"));
 	err = sensor_enable_to_hub(ID_LIGHT, enable_disable);
 	if (err) {
 		pr_err("sensor_enable_to_hub failed!\n");
 		return -1;
 	}
+    } else {
+        pr_warn("%s: android_enable[%u] ignore power request[%s]\n", __func__, android_enable, (enable_disable == true)?("on"):("off"));
+    }
 	mutex_lock(&alspshub_mutex);
 	if (enable_disable)
 		set_bit(CMC_BIT_ALS, &obj->enable);
