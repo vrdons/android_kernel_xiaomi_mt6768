@@ -28,6 +28,9 @@
 #include <linux/delay.h>
 #include <linux/workqueue.h>
 #include "inc/tcpci.h"
+/*K19A HQ-134474 K19A for typec mode by langjunjun at 2021/6/1 start*/
+#include "inc/wusb3801.h"
+/*K19A HQ-134474 K19A for typec mode by langjunjun at 2021/6/1 end*/
 #ifdef HAVE_DR
 #include <linux/usb/class-dual-role.h>
 #endif /* HAVE_DR */
@@ -2282,7 +2285,6 @@ int fusb303_get_mode(struct tcpc_device *tcpc, int *typec_mode)
 	int rc;
 	u8 type;
 
-
 	rc = i2c_smbus_read_byte_data(g_client,
 			FUSB303_REG_TYPE);
 	if (rc < 0) {
@@ -2292,7 +2294,6 @@ int fusb303_get_mode(struct tcpc_device *tcpc, int *typec_mode)
 	}
 
 	type = rc & FUSB303_TYPE_MASK;
-
 	switch (type) {
 	case FUSB303_TYPE_SRC:
 	case FUSB303_TYPE_SRC_ACC:
@@ -2302,9 +2303,6 @@ int fusb303_get_mode(struct tcpc_device *tcpc, int *typec_mode)
 	case FUSB303_TYPE_SNK:
 	case FUSB303_TYPE_DBG_ACC_SNK:
 		*typec_mode = 1;
-		break;
-	case FUSB303_TYPE_INVALID:
-		*typec_mode = 0;
 		break;
 	default:
 		*typec_mode = 0;

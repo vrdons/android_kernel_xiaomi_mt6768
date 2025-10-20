@@ -1,0 +1,5 @@
+config TYPEC_FUSB302B
+    tristate "TYPEC_FUSB302B driver"
+    depends on I2C
+    help
+        Say Y or M here if your system has fusb302 ic controller.

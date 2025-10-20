@@ -239,6 +239,7 @@ static int test_cc_patch(struct wusb3801_chip *chip)
 	if (ret & WUSB3801_FORCE_ERR_RCY_MASK) {
 		pr_err("wusb3801 [%s]enter error recovery :0x%x\n", __func__, ret);
 		wusb3801_i2c_write8(chip->tcpc, WUSB3801_REG_TEST_02, 0x00);
+		wusb3801_i2c_write8(chip->tcpc, WUSB3801_REG_TEST_09, 0x00);
 	}
     return BITS_GET(rc, 0x40);
 }
@@ -354,7 +355,6 @@ static void wusb3801_irq_work_handler(struct kthread_work *work)
      }
 	tcpci_unlock_typec(tcpc);
 }
-
 void wusb3801_intr_handler_resume(void)
 {
 	if (g_irq_3801_flag == true) {
@@ -439,6 +439,7 @@ static int wusb3801_init_alert(struct tcpc_device *tcpc)
 	if (ret & WUSB3801_FORCE_ERR_RCY_MASK) {
 		pr_err("wusb3801 [%s]enter error recovery :0x%x\n", __func__, ret);
 		wusb3801_i2c_write8(chip->tcpc, WUSB3801_REG_TEST_02, 0x00);
+		wusb3801_i2c_write8(chip->tcpc, WUSB3801_REG_TEST_09, 0x00);
 	}
 	ret = request_irq(chip->irq, wusb3801_intr_handler,
 		IRQF_TRIGGER_FALLING | IRQF_NO_THREAD |
@@ -733,7 +734,6 @@ static void wusb3801_first_check_typec_work(struct work_struct *work)
 		return ;
 	}
 	int_sts = rc & WUSB3801_INT_STS_MASK;
-
 	first_check_flag = 1;
 	rc = wusb3801_i2c_read8(chip->tcpc, WUSB3801_REG_STATUS);
 	if (rc < 0) {
@@ -986,7 +986,6 @@ static int wusb3801_i2c_probe(struct i2c_client *client,
 		if (chip_id < 0)
 			return chip_id;
 	}
-
 	chip = devm_kzalloc(&client->dev, sizeof (*chip), GFP_KERNEL);
 	if (!chip)
 		return -ENOMEM;

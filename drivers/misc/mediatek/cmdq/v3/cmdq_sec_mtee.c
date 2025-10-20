@@ -11,17 +11,25 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/arm-smccc.h>
 #include <linux/soc/mediatek/mtk-cmdq.h>
 #include "cmdq_sec_mtee.h"
+
+static bool cmdq_mtee;
 
 void cmdq_sec_mtee_setup_context(struct cmdq_sec_mtee_context *tee)
 {
 	const char ta_uuid[32] = "com.mediatek.geniezone.cmdq";
 	const char wsm_uuid[32] = "com.mediatek.geniezone.srv.mem";
+	struct arm_smccc_res res;
 
 	memset(tee, 0, sizeof(*tee));
 	strncpy(tee->ta_uuid, ta_uuid, sizeof(tee->ta_uuid));
 	strncpy(tee->wsm_uuid, wsm_uuid, sizeof(tee->wsm_uuid));
+	arm_smccc_smc(0xBC00000B, 1, 0, 0, 0, 0, 0, 0, &res);
+	if (res.a0 == 1)
+		cmdq_mtee = true;
+	cmdq_msg("%s cmdq_mtee:%d", __func__, cmdq_mtee);
 }
 
 // TODO

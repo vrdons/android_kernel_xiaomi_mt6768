@@ -19,6 +19,14 @@
 #include <mt-plat/mtk_boot.h>
 #include "mtk_charger_intf.h"
 #include "mtk_dual_switch_charging.h"
+/*K19A K19A-159 K19A charger by wangqi at 2021/4/20 start*/
+extern enum hvdcp_status hvdcp_type_tmp;
+/*K19A K19A-159 K19A charger by wangqi at 2021/4/20 end*/
+/*K19A HQ-129052 K19A charger of thermal current limit by wangqi at 2021/5/13 start*/
+extern int call_mode;
+/*K19A HQ-129052 K19A charger of thermal current limit by wangqi at 2021/5/13 end*/
+
+
 
 static int _uA_to_mA(int uA)
 {
@@ -157,7 +165,12 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 
 	if (info->atm_enabled == true && (info->chr_type == STANDARD_HOST ||
 	    info->chr_type == CHARGING_HOST)) {
+#ifdef TARGET_PRODUCT_SELENE
+		pdata->input_current_limit = 500000;
+		pdata->charging_current_limit = 500000;
+#else
 		pdata->input_current_limit = 100000; /* 100mA */
+#endif
 		goto done;
 	}
 
@@ -284,6 +297,26 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 					info->data.ac_charger_input_current;
 		pdata->charging_current_limit =
 					info->data.ac_charger_current;
+          /*K19A K19A-137 K19A  smb1351 kernel charger by wangqi at 2021/4/14 start*/
+		switch (info->usb_psy->desc->type) {
+		case POWER_SUPPLY_TYPE_USB_HVDCP:
+				pdata->input_current_limit = 2000000;
+				pdata->charging_current_limit = 3000000;
+				break;
+		case POWER_SUPPLY_TYPE_USB_HVDCP_3:
+				pdata->input_current_limit = 3000000;
+				pdata->charging_current_limit = 3000000;
+				break;
+		default:
+				break;
+		}
+		/*K19A K19A-159 K19A charger by wangqi at 2021/4/20 start*/
+		if(hvdcp_type_tmp == HVDCP){
+				pdata->input_current_limit = 2000000;
+				pdata->charging_current_limit = 3000000;
+		}
+		/*K19A K19A-159 K19A charger by wangqi at 2021/4/20 end*/
+          /*K19A K19A-137 K19A  smb1351 kernel charger by wangqi at 2021/4/14 end*/
 		mtk_pe20_set_charging_current(info,
 					&pdata->charging_current_limit,
 					&pdata->input_current_limit);
@@ -332,8 +365,8 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 				info->data.apple_2_1a_charger_current;
 		pdata->charging_current_limit =
 				info->data.apple_2_1a_charger_current;
-	}
-
+}
+#ifndef TARGET_PRODUCT_SELENE
 	if (info->enable_sw_jeita) {
 		if (IS_ENABLED(CONFIG_USBIF_COMPLIANCE)
 		    && info->chr_type == STANDARD_HOST)
@@ -345,7 +378,14 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 			}
 		}
 	}
-
+#else
+	/*K19A HQ-124114 K19A charger of jeita by wangqi at 2021/4/16 start*/
+	if (info->enable_sw_jeita){
+		if (pdata->charging_current_limit > info->sw_jeita.cc)
+			pdata->charging_current_limit = info->sw_jeita.cc;
+	}
+	/*K19A HQ-124114 K19A charger of jeita by wangqi at 2021/4/16 start*/
+#endif
 	/*
 	 * If thermal current limit is less than charging IC's minimum
 	 * current setting, disable the charger by setting its current
@@ -435,7 +475,14 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 			pdata->input_current_limit =
 					pdata->input_current_limit_by_aicl;
 	}
-
+/*K19A HQ-129052 K19A charger of thermal current limit by wangqi at 2021/5/13 start*/
+	if (call_mode >= 0) {
+		if (pdata->charging_current_limit >= (call_mode*1000)) {
+			pdata->charging_current_limit = (call_mode*1000);
+			pr_err("call mode is %d\n", call_mode*1000);
+		}
+	}
+	/*K19A HQ-129052 K19A charger of thermal current limit by wangqi at 2021/5/13 end*/
 done:
 	if (info->data.parallel_vbus) {
 		pdata->input_current_limit = pdata->input_current_limit / 2;
@@ -554,7 +601,10 @@ static void dual_swchg_turn_on_charging(struct charger_manager *info)
 
 	if (is_dual_charger_supported(info) == false)
 		chg2_enable = false;
-
+/*K19A WXYFB-604 K19A charger by wangqi at 2021/4/6 start*/
+	if(charger_manager_is_input_suspend() == true)
+		chg1_enable = false;
+/*K19A WXYFB-604 K19A charger by wangqi at 2021/4/6 end*/
 	if (swchgalg->state == CHR_ERROR) {
 		chg1_enable = false;
 		chg2_enable = false;
@@ -832,7 +882,7 @@ int mtk_dual_switch_chr_err(struct charger_manager *info)
 int mtk_dual_switch_chr_full(struct charger_manager *info)
 {
 	bool chg_done = false;
-	struct dual_switch_charging_alg_data *swchgalg = info->algorithm_data;
+		struct dual_switch_charging_alg_data *swchgalg = info->algorithm_data;
 
 	/* turn off LED */
 
@@ -1015,7 +1065,14 @@ int mtk_dual_switch_charging_init(struct charger_manager *info)
 		chr_info("Found primary charger [%s]\n",
 			info->chg1_dev->props.alias_name);
 	else
-		chr_err("*** Error: can't find primary charger ***\n");
+/* Huaqin add for K19A-216 by wangchao at 2021/6/16 start */
+	{
+		msleep(300);
+		info->chg1_dev = get_charger_by_name("primary_chg");
+		if (info->chg1_dev == NULL)
+			chr_err("*** Error: can't find primary charger, chg1_dev == NULL ***\n");
+	}
+/* Huaqin add for K19A-216 by wangchao at 2021/6/16 end */
 
 	info->chg2_dev = get_charger_by_name("secondary_chg");
 	if (info->chg2_dev)

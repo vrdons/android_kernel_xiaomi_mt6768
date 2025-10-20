@@ -3,6 +3,8 @@
  *
  * Copyright (C) 2008 Google, Inc.
  * Copyright (C) 2021 XiaoMi, Inc.
+=======
+>>>>>>> 6a5cdd2759876 (Kernel: Xiaomi kernel changes for Redmi 10 Prime Android R)
  * Author: Mike Lockwood <lockwood@android.com>
  *
  * This software is licensed under the terms of the GNU General Public

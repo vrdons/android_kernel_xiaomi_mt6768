@@ -43,6 +43,7 @@ obj-$(CONFIG_CHARGER_BQ2589X) += bq2589x.o
 obj-$(CONFIG_CHARGER_LN8000) += ln8000.o
 #obj-$(CONFIG_SMB1351_USB_CHARGER) += smb1351-charger.o
 obj-y += smb1351-charger.o
+obj-y += pd_policy_manager.o
 
 obj-$(CONFIG_LOAD_SWITCH_RT9750) += rt9750.o
 obj-$(CONFIG_CHARGER_MT6362) += mt6362-chg.o

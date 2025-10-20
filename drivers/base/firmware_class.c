@@ -372,6 +372,7 @@ static const char * const fw_path[] = {
 #ifdef CONFIG_SND_SOC_AW87519
 	"/system/vendor/firmware",
 #endif
+	//"/system/etc/firmware", test
 	"/lib/firmware/updates/" UTS_RELEASE,
 	"/lib/firmware/updates",
 	"/lib/firmware/" UTS_RELEASE,

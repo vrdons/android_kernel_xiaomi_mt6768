@@ -5532,6 +5532,8 @@ static int msdc_runtime_resume(struct device *dev)
 	void __iomem *base = host->base;
 
 	pm_qos_update_request(&host->msdc_pm_qos_req, 0);
+	if (host->vcore_opp != -1)
+		pm_qos_update_request(host->req_vcore, host->vcore_opp);
 
 	if (host->pclk_ctl)
 		(void)clk_prepare_enable(host->pclk_ctl);

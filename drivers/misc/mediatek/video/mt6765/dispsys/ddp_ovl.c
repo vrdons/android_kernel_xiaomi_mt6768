@@ -156,7 +156,7 @@ unsigned int ovl_to_index(enum DISP_MODULE_ENUM module)
 
 static inline enum DISP_MODULE_ENUM ovl_index_to_module(int index)
 {
-	if (index >= OVL_NUM) {
+	if (index >= OVL_NUM || index < 0) {
 		DDPERR("invalid ovl index=%d\n", index);
 		ASSERT(0);
 	}
@@ -309,9 +309,9 @@ static int _ovl_get_rsz_layer_roi(const struct OVL_CONFIG_STRUCT * const oc,
 	}
 
 	if (oc->src_w < oc->dst_w || oc->src_h < oc->dst_h) {
-		*dst_x = ((oc->dst_x * oc->src_w) / oc->dst_w)
+		*dst_x = ((oc->dst_x * oc->src_w * 10) / oc->dst_w + 5) / 10
 			- src_total_roi.x;
-		*dst_y = ((oc->dst_y * oc->src_h) / oc->dst_h)
+		*dst_y = ((oc->dst_y * oc->src_h * 10) / oc->dst_h + 5) / 10
 			- src_total_roi.y;
 		*dst_w = oc->src_w;
 		*dst_h = oc->src_h;
@@ -647,6 +647,8 @@ static int ovl_layer_config(enum DISP_MODULE_ENUM module, unsigned int layer,
 	if (!is_engine_sec) {
 		DISP_REG_SET(handle, DISP_REG_OVL_L0_ADDR + layer_offset_addr,
 			cfg->real_addr);
+		DISP_REG_SET(handle, DISP_REG_OVL_SECURE + ovl_base,
+			0);
 	} else {
 		unsigned int size;
 		int m4u_port;
@@ -665,6 +667,16 @@ static int ovl_layer_config(enum DISP_MODULE_ENUM module, unsigned int layer,
 				CMDQ_SAM_NMVA_2_MVA, cfg->addr + offset,
 				0, size, m4u_port);
 
+			if (is_ext_layer)
+				DISP_REG_SET_FIELD(handle,
+					REG_FLD_MSB_LSB(cfg->ext_layer + 4,
+					cfg->ext_layer + 4),
+					ovl_base + DISP_REG_OVL_SECURE, 0);
+			else
+				DISP_REG_SET_FIELD(handle,
+					REG_FLD_MSB_LSB(layer, layer),
+					ovl_base + DISP_REG_OVL_SECURE, 0);
+
 		} else {
 			/*
 			 * for sec layer, addr variable stores sec handle
@@ -677,6 +689,16 @@ static int ovl_layer_config(enum DISP_MODULE_ENUM module, unsigned int layer,
 					layer_offset_addr),
 				CMDQ_SAM_H_2_MVA, cfg->addr,
 				offset, size, m4u_port);
+
+			if (is_ext_layer)
+				DISP_REG_SET_FIELD(handle,
+					REG_FLD_MSB_LSB(cfg->ext_layer + 4,
+					cfg->ext_layer + 4),
+					ovl_base + DISP_REG_OVL_SECURE, 1);
+			else
+				DISP_REG_SET_FIELD(handle,
+					REG_FLD_MSB_LSB(layer, layer),
+					ovl_base + DISP_REG_OVL_SECURE, 1);
 		}
 	}
 	DISP_REG_SET(handle, DISP_REG_OVL_L0_SRCKEY + layer_offset, cfg->key);
@@ -927,7 +949,7 @@ static inline int ovl_switch_to_sec(enum DISP_MODULE_ENUM module, void *handle)
 	/* set engine as sec port, it will to access
 	 * the sec memory EMI_MPU protected
 	 */
-	cmdqRecSecureEnablePortSecurity(handle, (1LL << cmdq_engine));
+	//cmdqRecSecureEnablePortSecurity(handle, (1LL << cmdq_engine));
 	/* Enable DAPC to protect the engine register */
 	/* cmdqRecSecureEnableDAPC(handle, (1LL << cmdq_engine)); */
 	if (ovl_is_sec[ovl_idx] == 0) {
@@ -1035,8 +1057,8 @@ static int setup_ovl_sec(enum DISP_MODULE_ENUM module,
 
 	if (has_sec_layer == 1)
 		ret = ovl_switch_to_sec(module, handle);
-	else
-		ret = ovl_switch_to_nonsec(module, NULL);
+//	else
+//		ret = ovl_switch_to_nonsec(module, NULL);
 
 	if (ret)
 		DDPAEE("[SVP]fail to %s ret=%d\n",

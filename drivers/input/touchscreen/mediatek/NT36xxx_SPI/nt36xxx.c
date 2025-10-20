@@ -47,6 +47,7 @@
 #include <linux/jiffies.h>
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
+
 #if WAKEUP_GESTURE
 #ifdef CONFIG_TOUCHSCREEN_COMMON
 #include <linux/input/tp_common.h>
@@ -1297,11 +1298,6 @@ void nvt_esd_check_enable(uint8_t enable)
 	/* enable/disable esd check flag */
 	esd_check = enable;
 }
-#ifdef CONFIG_MI_ERRFLAG_ESD_CHECK_ENABLE
-/* Huaqin modify for HQ-144782 by caogaojie at 2021/07/05 start */
-extern bool g_trigger_disp_esd_recovery;
-/* Huaqin modify for HQ-144782 by caogaojie at 2021/07/05 end */
-#endif
 static void nvt_esd_check_func(struct work_struct *work)
 {
 	unsigned int timer = jiffies_to_msecs(jiffies - irq_timer);
@@ -1320,12 +1316,9 @@ static void nvt_esd_check_func(struct work_struct *work)
 			/* update esd_retry counter */
 			esd_retry++;
 		} else { // esd_retry >= 2
-			NVT_ERR("esd_retry=%d, set g_trigger_disp_esd_recovery true!\n", esd_retry);
+			NVT_ERR("esd_retry=%d !\n", esd_retry);
 			nvt_esd_check_enable(false);
 			esd_retry = 0;
-#ifdef CONFIG_MI_ERRFLAG_ESD_CHECK_ENABLE
-			g_trigger_disp_esd_recovery = true;
-#endif
 		}
 	}
 /* Huaqin modify for HQ-144782 by caogaojie at 2021/07/05 end */

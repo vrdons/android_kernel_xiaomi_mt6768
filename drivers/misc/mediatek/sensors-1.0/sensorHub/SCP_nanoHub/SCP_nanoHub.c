@@ -916,7 +916,7 @@ static void SCP_sensorHub_init_sensor_state(void)
 }
 
 static void init_sensor_config_cmd(struct ConfigCmd *cmd,
-		uint8_t sensor_type)
+		int sensor_type)
 {
 	uint8_t alt = mSensorState[sensor_type].alt;
 	bool enable = 0;
@@ -1025,8 +1025,7 @@ static int SCP_sensorHub_flush(int handle)
 static int SCP_sensorHub_report_raw_data(struct data_unit_t *data_t)
 {
 	struct SCP_sensorHub_data *obj = obj_data;
-	int err = 0;
-	uint8_t sensor_type = 0, sensor_id = 0;
+	int err = 0, sensor_type = 0, sensor_id = 0;
 	atomic_t *p_flush_count = NULL;
 	bool raw_enable = 0;
 	int64_t raw_enable_time = 0;
@@ -1073,8 +1072,8 @@ static int SCP_sensorHub_report_raw_data(struct data_unit_t *data_t)
 static int SCP_sensorHub_report_alt_data(struct data_unit_t *data_t)
 {
 	struct SCP_sensorHub_data *obj = obj_data;
-	int err = 0;
-	uint8_t alt = 0, alt_id, sensor_type = 0, sensor_id = 0;
+	int err = 0, sensor_type = 0, sensor_id = 0, alt_id;
+	uint8_t alt = 0;
 	atomic_t *p_flush_count = NULL;
 	bool alt_enable = 0;
 	int64_t alt_enable_time = 0;
@@ -1547,6 +1546,10 @@ int sensor_get_data_from_hub(uint8_t sensorType,
 	case ID_LIGHT:
 		data->time_stamp = data_t->time_stamp;
 		data->light = data_t->light;
+		/*Huaqin modify for HQ-12367 by luozeng at 2021.3.31 start*/
+		data->data[1] = data_t->data[1];
+        printk_ratelimited(KERN_ERR "light: data[0] = %d, data[1] = %d\n", data->light, data->data[1]);
+		/*Huaqin modify for HQ-12367 by luozeng at 2021.3.31 end*/
 		break;
 	case ID_PROXIMITY:
 		data->time_stamp = data_t->time_stamp;

@@ -1809,6 +1809,15 @@ int layering_rule_start(struct disp_layer_info *disp_info_user,
 		return -EFAULT;
 	}
 
+#ifdef CONFIG_MTK_HIGH_FRAME_RATE
+	/*DynFPS, only primary display support*/
+	/*l_rule_info->active_config_id = disp_info_user->active_config_id[0];*/
+	if (g_force_cfg) {
+		disp_info_user->active_config_id[0] = g_force_cfg_id;
+	}
+	/*primary_display_update_cfg_id(disp_info_user->active_config_id[0]);*/
+#endif
+
 	if (check_disp_info(disp_info_user) < 0) {
 		DISPERR("check_disp_info fail\n");
 		return -EFAULT;
@@ -1887,6 +1896,9 @@ int layering_rule_start(struct disp_layer_info *disp_info_user,
 		layering_info.hrt_num = 0;
 
 	ret = dispatch_ovl_id(&layering_info);
+
+	if (l_rule_ops->clear_layer)
+		l_rule_ops->clear_layer(&layering_info);
 
 	if (l_rule_ops->adjust_hrt_level != NULL)
 		l_rule_ops->adjust_hrt_level(&layering_info);
