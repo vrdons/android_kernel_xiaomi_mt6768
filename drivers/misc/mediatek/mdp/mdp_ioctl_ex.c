@@ -45,6 +45,14 @@
 #include "cmdq_struct.h"
 #include "mdp_m4u.h"
 
+/* compatible with cmdq legacy driver */
+#ifndef CMDQ_TRACE_FORCE_BEGIN
+#define CMDQ_TRACE_FORCE_BEGIN(...)
+#endif
+#ifndef CMDQ_TRACE_FORCE_END
+#define CMDQ_TRACE_FORCE_END(...)
+#endif
+
 #ifdef MDP_M4U_TEE_SUPPORT
 static atomic_t m4u_init = ATOMIC_INIT(0);
 #endif
