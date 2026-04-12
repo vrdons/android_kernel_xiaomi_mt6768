@@ -377,7 +377,9 @@ ifneq ($(CONFIG_MTK_COMBO_WIFI),)
 endif
 
 obj-$(CONFIG_THERMAL) += mtk_tsAll.o
-#obj-$(CONFIG_THERMAL) += mtk_ts_imgsensor.o
+ifeq ($(CONFIG_TARGET_PRODUCT_SELENECOMMON),y)
+obj-$(CONFIG_THERMAL) += mtk_ts_imgsensor.o
+endif
 obj-$(CONFIG_THERMAL) += mtk_ts_dctm.o
 obj-$(CONFIG_THERMAL) += mtk_ts_pmic.o
 obj-$(CONFIG_THERMAL) += mtk_ts_blk_ntc.o
