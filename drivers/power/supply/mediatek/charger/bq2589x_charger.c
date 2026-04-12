@@ -989,7 +989,7 @@ static int bq2589x_inform_charger_type_report(struct bq2589x *bq)
 static void bq2589x_cdp_work(struct work_struct *work)
 {
 	int timer_count = 0;
-	
+
 	struct bq2589x *bq = container_of(work, struct bq2589x, cdp_work.work);
 	while (1) {
 		if (timer_count >= 10 && cdp_unattach){
@@ -1129,7 +1129,7 @@ static void bq2589x_read_byte_work(struct work_struct *work)
 				mdelay(2000);
 				Charger_Detect_Release();
 				pr_err("foce NONSTD ti\n");
-			} 
+			}
 			charger_detect_count --;
 			pr_err("charger_detect_count:%d\n",charger_detect_count);
 		}
@@ -1797,26 +1797,29 @@ static int bq2589x_charger_probe(struct i2c_client *client,
 	ret = bq2589x_detect_device(bq);
 	if (ret) {
 		pr_err("No bq2589x device found!\n");
-		return -ENODEV;
+		ret = -ENODEV;
+		goto err_nodev;
 	}
 
 	match = of_match_node(bq2589x_charger_match_table, node);
 	if (match == NULL) {
 		pr_err("device tree match not found\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto err_parse_dt;
 	}
 
 	bq->platform_data = bq2589x_parse_dt(node, bq);
 
 	if (!bq->platform_data) {
 		pr_err("No platform data provided.\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto err_parse_dt;
 	}
 
 	ret = bq2589x_init_device(bq);
 	if (ret) {
 		pr_err("Failed to init device\n");
-		return ret;
+		goto err_init;
 	}
 /* Huaqin add for HQ-132657 by miaozhichao at 2021/5/6 start */
 	INIT_DELAYED_WORK(&bq->read_byte_work,bq2589x_read_byte_work);
@@ -1845,6 +1848,12 @@ static int bq2589x_charger_probe(struct i2c_client *client,
 	       bq->part_no, bq->revision);
 
 	return 0;
+err_init:
+err_parse_dt:
+err_nodev:
+	mutex_destroy(&bq->i2c_rw_lock);
+	devm_kfree(bq->dev, bq);
+	return ret;
 }
 
 static int bq2589x_charger_remove(struct i2c_client *client)
