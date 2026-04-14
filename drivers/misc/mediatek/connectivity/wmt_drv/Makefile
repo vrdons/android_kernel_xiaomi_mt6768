@@ -165,6 +165,9 @@ ccflags-y += -I$(src)/common_main/linux/pri/include
 ccflags-y += -I$(src)/common_main/platform/include
 ccflags-y += -I$(src)/common_main/core/include
 ccflags-y += -I$(src)/common_main/include
+ifeq ($(CONFIG_MTK_ENG_BUILD),y)
+ccflags-y += -I$(src)/test/include
+endif
 
 ccflags-y += -D WMT_PLAT_ALPS=1
 ccflags-y += -D WMT_UART_RX_MODE_WORK=0 # 1. work thread 0. tasklet
@@ -241,6 +244,9 @@ ifneq ($(CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH),)
 $(MODULE_NAME)-objs += common_main/linux/fw_log_wmt.o
 endif
 $(MODULE_NAME)-objs += common_main/linux/wmt_step.o
+ifeq ($(CONFIG_MTK_ENG_BUILD),y)
+$(MODULE_NAME)-objs += test/wmt_step_test.o
+endif
 
 ifeq ($(CONFIG_MTK_BTIF),$(filter $(CONFIG_MTK_BTIF),y m))
 $(MODULE_NAME)-objs += common_main/linux/stp_btif.o
