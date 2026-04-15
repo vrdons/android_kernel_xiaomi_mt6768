@@ -82,6 +82,7 @@ static atomic_t _check_task_wakeup = ATOMIC_INIT(0);
 static wait_queue_head_t esd_ext_te_wq;
 /* For EXT TE EINT Check */
 static atomic_t esd_ext_te_event = ATOMIC_INIT(0);
+
 static unsigned int esd_check_mode;
 static unsigned int esd_check_enable;
 unsigned int esd_checking;
@@ -650,6 +651,7 @@ static int primary_display_check_recovery_worker_kthread(void *data)
 
 	sched_setscheduler(current, SCHED_RR, &param);
 
+
 	while (1) {
 		msleep(2000); /* 2s */
 		ret = wait_event_interruptible(_check_task_wq,
@@ -695,6 +697,7 @@ static int primary_display_check_recovery_worker_kthread(void *data)
 			DISPERR(
 				"[ESD]LCM recover fail. Try time:%d. Disable esd check\n",
 				esd_try_cnt);
+			primary_display_esd_check_enable(0);
 		} else if (recovery_done == 1) {
 			DISPCHECK("[ESD]esd recovery success\n");
 			recovery_done = 0;
@@ -914,7 +917,7 @@ void primary_display_requset_eint(void)
 				"mediatek, DSI_TE-eint");
 		if (!node) {
 			DISPERR(
-				"[ESD][%s] can't find DSI_TE eint compatible node\n",
+				"[ESD][%s] can't find DSI_TE-eint eint compatible node\n",
 				    __func__);
 			return;
 		}
@@ -922,7 +925,7 @@ void primary_display_requset_eint(void)
 		/* 1.register irq handler */
 		te_irq = irq_of_parse_and_map(node, 0);
 		if (request_irq(te_irq, _esd_check_ext_te_irq_handler,
-				IRQF_TRIGGER_RISING, "DSI_TE-eint", NULL)) {
+				IRQF_TRIGGER_FALLING, "DSI_TE-eint", NULL)) {
 			DISPERR("[ESD]EINT IRQ LINE NOT AVAILABLE!\n");
 			return;
 		}
