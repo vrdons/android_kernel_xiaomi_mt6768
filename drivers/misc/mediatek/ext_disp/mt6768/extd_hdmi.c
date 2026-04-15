@@ -773,7 +773,7 @@ static void hdmi_resolution_setting(int arg)
 				    1;
 				/* width/(slice_mode's slice) */
 				extd_dsc_params->slice_width = 1920;
-				extd_dsc_params->slice_hight = 8;
+				extd_dsc_params->slice_height = 8;
 				/* 128: 1/3 compress; 192: 1/2 compress */
 				extd_dsc_params->bit_per_pixel = 128;
 				/* 0: 1 slice; 1: 2 slice; 2: 3 slice */
@@ -844,7 +844,7 @@ static void hdmi_resolution_setting(int arg)
 				    p->hdmi_width / 3;
 				/* width/(slice_mode's slice) */
 				extd_dsc_params->slice_width = 1920;
-				extd_dsc_params->slice_hight = 8;
+				extd_dsc_params->slice_height = 8;
 				/* 128: 1/3 compress; 192: 1/2 compress */
 				extd_dsc_params->bit_per_pixel = 128;
 				/* 0: 1 slice; 1: 2 slice; 2: 3 slice */
