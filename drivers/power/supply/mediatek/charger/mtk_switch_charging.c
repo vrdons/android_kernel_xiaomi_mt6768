@@ -258,7 +258,11 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 				pdata->charging_current_limit = 2000000;
 				break;
 		}
-	} else if (info->chr_type == CHARGING_HOST) {
+	} else if (info->chr_type == HVDCP_CHARGER) {
+		pdata->input_current_limit = 2000000;
+		pdata->charging_current_limit = 3000000;
+	}
+	else if (info->chr_type == CHARGING_HOST) {
 		pdata->input_current_limit =
 				info->data.charging_host_charger_current;
 		pdata->charging_current_limit =
@@ -755,7 +759,3 @@ int mtk_switch_charging_init(struct charger_manager *info)
 
 	return 0;
 }
-
-
-
-
