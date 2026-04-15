@@ -320,10 +320,10 @@ struct fb_post_video_buffer {
 struct fb_lcd_merlin_para {
 	int white_point_x;
 	int white_point_y;
+	int white_point_l;
 	u32 white_point_r;
 	u32 white_point_g;
 	u32 white_point_b;
-
 };
 
 #if defined(CONFIG_MACH_MT6735) || defined(CONFIG_MACH_MT6735M)\
