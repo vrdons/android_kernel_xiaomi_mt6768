@@ -70,14 +70,9 @@
 			 *	pd,id-vdo-data = <0xd60029cf 0x0 0x17110000
 			 */
 
-#ifdef CONFIG_TARGET_PRODUCT_SELENECOMMON
 			pd,id-vdo-size = <6>;
 			pd,id-vdo-data = <0xd14029cf 0x0 0x17110000
 					  0x41800000 0x0 0x21800000>;
-#else
-			pd,id-vdo-size = <3>;
-			pd,id-vdo-data = <0xd10029cf 0x0 0x17110000>;
-#endif
 
 			bat,nr = <1>;
 			pd,country_nr = <0>;
@@ -142,9 +137,7 @@
 			2nd_connection = "dfp_d";
 			signal,dp_v13;
 			//signal,dp_gen2;
-#ifndef CONFIG_TARGET_PRODUCT_SELENECOMMON
-			usbr20_not_used;
-#endif
+			//usbr20_not_used;
 			typec,receptacle;
 			ufp_d {
 				//pin_assignment,mode_a;
@@ -160,9 +153,7 @@
 				pin_assignment,mode_c;
 				pin_assignment,mode_d;
 				pin_assignment,mode_e;
-#ifndef CONFIG_TARGET_PRODUCT_SELENECOMMON
-				pin_assignment,mode_f;
-#endif
+				//pin_assignment,mode_f;
 			};
 		};
 	};
