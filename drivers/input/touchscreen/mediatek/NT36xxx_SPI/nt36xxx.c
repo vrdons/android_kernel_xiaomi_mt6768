@@ -1297,11 +1297,6 @@ void nvt_esd_check_enable(uint8_t enable)
 	/* enable/disable esd check flag */
 	esd_check = enable;
 }
-#ifdef CONFIG_MI_ERRFLAG_ESD_CHECK_ENABLE
-/* Huaqin modify for HQ-144782 by caogaojie at 2021/07/05 start */
-extern bool g_trigger_disp_esd_recovery;
-/* Huaqin modify for HQ-144782 by caogaojie at 2021/07/05 end */
-#endif
 static void nvt_esd_check_func(struct work_struct *work)
 {
 	unsigned int timer = jiffies_to_msecs(jiffies - irq_timer);
@@ -1323,9 +1318,6 @@ static void nvt_esd_check_func(struct work_struct *work)
 			NVT_ERR("esd_retry=%d, set g_trigger_disp_esd_recovery true!\n", esd_retry);
 			nvt_esd_check_enable(false);
 			esd_retry = 0;
-#ifdef CONFIG_MI_ERRFLAG_ESD_CHECK_ENABLE
-			g_trigger_disp_esd_recovery = true;
-#endif
 		}
 	}
 /* Huaqin modify for HQ-144782 by caogaojie at 2021/07/05 end */
@@ -2653,7 +2645,7 @@ static int32_t nvt_ts_resume(struct device *dev)
 	nvt_irq_enable(true);
 #endif
 	/* Huaqin modify for TP GESTURE by zhangjiangbin at 2021/07/13 end */
-	
+
 #if NVT_TOUCH_ESD_PROTECT
 	nvt_esd_check_enable(false);
 	queue_delayed_work(nvt_esd_check_wq, &nvt_esd_check_work,

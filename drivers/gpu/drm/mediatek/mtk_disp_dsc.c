@@ -488,7 +488,7 @@ void mtk_dsc_dump(struct mtk_ddp_comp *comp)
 	DDPDUMP("(0x000)DSC_START=0x%x\n", readl(baddr + DISP_REG_DSC_CON));
 	DDPDUMP("(0x020)DSC_SLICE_WIDTH=0x%x\n",
 		readl(baddr + DISP_REG_DSC_SLICE_W));
-	DDPDUMP("(0x024)DSC_SLICE_HIGHT=0x%x\n",
+	DDPDUMP("(0x024)DSC_SLICE_HEIGHT=0x%x\n",
 		readl(baddr + DISP_REG_DSC_SLICE_H));
 	DDPDUMP("(0x000)DSC_WIDTH=0x%x\n", readl(baddr + DISP_REG_DSC_PIC_W));
 	DDPDUMP("(0x000)DSC_HEIGHT=0x%x\n", readl(baddr + DISP_REG_DSC_PIC_H));

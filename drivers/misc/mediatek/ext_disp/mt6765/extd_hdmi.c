@@ -774,7 +774,7 @@ static void hdmi_resolution_setting(int arg)
 				extd_dpi_params.dispif_config.dsi.
 				    dsc_params.slice_width = 1920;
 				extd_dpi_params.dispif_config.dsi.
-				    dsc_params.slice_hight = 8;
+				    dsc_params.slice_height = 8;
 				/* 128: 1/3 compress; 192: 1/2 compress */
 				extd_dpi_params.dispif_config.dsi.
 				    dsc_params.bit_per_pixel = 128;
@@ -863,7 +863,7 @@ static void hdmi_resolution_setting(int arg)
 				extd_dpi_params.dispif_config.dpi.
 				    dsc_params.slice_width = 1920;
 				extd_dpi_params.dispif_config.dpi.
-				    dsc_params.slice_hight = 8;
+				    dsc_params.slice_height = 8;
 				/* 128: 1/3 compress; 192: 1/2 compress */
 				extd_dpi_params.dispif_config.dpi.
 				    dsc_params.bit_per_pixel = 128;
