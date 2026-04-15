@@ -134,7 +134,6 @@ extern bool fts_gesture_flag;
 
 extern int32_t fts_ts_tp_suspend(void);
 extern int32_t fts_ts_tp_resume(void);
-extern bool esd_flag;
 
 /*****************************************************************************
  * Function Prototype
@@ -552,21 +551,12 @@ static void lcm_init(void)
 	fts_fwresume_work();
 	push_table(NULL, init_setting_vdo, ARRAY_SIZE(init_setting_vdo), 1);
 
-	if (esd_flag == true) {
-	    LCM_LOGI("%s, Now esd_flag = %d\n", __func__, esd_flag);
-	    fts_ts_tp_resume();
-	}
 }
 
 static void lcm_suspend(void)
 {
 
 	LCM_LOGI("[DENNIS][%s][%d]\n", __func__, __LINE__);
-
-	if (esd_flag == true) {
-	    LCM_LOGI("%s, Now esd_flag = %d\n", __func__, esd_flag);
-	    fts_ts_tp_suspend();
-	}
 
 	push_table(NULL, lcm_suspend_setting,
 		   ARRAY_SIZE(lcm_suspend_setting), 1);
