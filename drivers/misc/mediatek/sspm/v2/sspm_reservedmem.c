@@ -139,6 +139,7 @@ int sspm_reserve_memory_init(void)
 {
 	unsigned int id;
 	phys_addr_t accumlate_memory_size;
+	void __iomem *base;
 
 	if (NUMS_MEM_ID == 0)
 		return 0;
@@ -147,8 +148,16 @@ int sspm_reserve_memory_init(void)
 		return -1;
 
 	accumlate_memory_size = 0;
-	sspm_mem_base_virt = (phys_addr_t)(uintptr_t)
-			ioremap_wc(sspm_mem_base_phys, sspm_mem_size);
+	base = ioremap_wc(sspm_mem_base_phys, sspm_mem_size);
+	if (!base) {
+		pr_err("[SSPM] failed to map reserve mem phys:0x%llx size:0x%llx\n",
+			(unsigned long long)sspm_mem_base_phys,
+			(unsigned long long)sspm_mem_size);
+		sspm_mem_base_phys = 0;
+		sspm_mem_size = 0;
+		return -ENOMEM;
+	}
+	sspm_mem_base_virt = (phys_addr_t)(uintptr_t)base;
 
 	pr_debug("[SSPM]reserve mem: virt:0x%llx - 0x%llx (0x%llx)\n",
 			(unsigned long long)sspm_mem_base_virt,
@@ -165,7 +174,16 @@ int sspm_reserve_memory_init(void)
 	 * or sspm_reserve_mblock does not match dts
 	 */
 
-	BUG_ON(accumlate_memory_size > sspm_mem_size);
+	if (accumlate_memory_size > sspm_mem_size) {
+		pr_err("[SSPM] reserve mem mismatch: need 0x%llx, have 0x%llx\n",
+			(unsigned long long)accumlate_memory_size,
+			(unsigned long long)sspm_mem_size);
+		iounmap(base);
+		sspm_mem_base_phys = 0;
+		sspm_mem_base_virt = 0;
+		sspm_mem_size = 0;
+		return -EINVAL;
+	}
 #ifdef DEBUG
 	for (id = 0; id < NUMS_MEM_ID; id++) {
 		pr_debug("[SSPM][mem_reserve-%d] ", id);
