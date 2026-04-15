@@ -19,6 +19,11 @@
 #include <mt-plat/mtk_boot.h>
 #include "mtk_charger_intf.h"
 #include "mtk_dual_switch_charging.h"
+extern enum hvdcp_status hvdcp_type_tmp;
+
+extern int call_mode;
+
+
 
 static int _uA_to_mA(int uA)
 {
@@ -157,7 +162,8 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 
 	if (info->atm_enabled == true && (info->chr_type == STANDARD_HOST ||
 	    info->chr_type == CHARGING_HOST)) {
-		pdata->input_current_limit = 100000; /* 100mA */
+		pdata->input_current_limit = 500000;
+		pdata->charging_current_limit = 500000;
 		goto done;
 	}
 
@@ -284,6 +290,22 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 					info->data.ac_charger_input_current;
 		pdata->charging_current_limit =
 					info->data.ac_charger_current;
+		switch (info->usb_psy->desc->type) {
+		case POWER_SUPPLY_TYPE_USB_HVDCP:
+				pdata->input_current_limit = 2000000;
+				pdata->charging_current_limit = 3000000;
+				break;
+		case POWER_SUPPLY_TYPE_USB_HVDCP_3:
+				pdata->input_current_limit = 3000000;
+				pdata->charging_current_limit = 3000000;
+				break;
+		default:
+				break;
+		}
+		if(hvdcp_type_tmp == HVDCP){
+				pdata->input_current_limit = 2000000;
+				pdata->charging_current_limit = 3000000;
+		}
 		mtk_pe20_set_charging_current(info,
 					&pdata->charging_current_limit,
 					&pdata->input_current_limit);
@@ -332,8 +354,12 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 				info->data.apple_2_1a_charger_current;
 		pdata->charging_current_limit =
 				info->data.apple_2_1a_charger_current;
+	} else if (info->chr_type == HVDCP_CHARGER) {
+          pdata->input_current_limit = 2000000;
+          pdata->charging_current_limit = 6000000;
+          pr_err("POWER_SUPPLY_TYPE_USB_HVDCP set icl\n");
 	}
-
+#ifndef TARGET_PRODUCT_SELENE
 	if (info->enable_sw_jeita) {
 		if (IS_ENABLED(CONFIG_USBIF_COMPLIANCE)
 		    && info->chr_type == STANDARD_HOST)
@@ -345,7 +371,12 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 			}
 		}
 	}
+#endif
 
+	if (info->enable_sw_jeita){
+		if (pdata->charging_current_limit > info->sw_jeita.cc)
+			pdata->charging_current_limit = info->sw_jeita.cc;
+	}
 	/*
 	 * If thermal current limit is less than charging IC's minimum
 	 * current setting, disable the charger by setting its current
@@ -435,7 +466,12 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 			pdata->input_current_limit =
 					pdata->input_current_limit_by_aicl;
 	}
-
+	if (call_mode >= 0) {
+		if (pdata->charging_current_limit >= (call_mode*1000)) {
+			pdata->charging_current_limit = (call_mode*1000);
+			pr_err("call mode is %d\n", call_mode*1000);
+		}
+	}
 done:
 	if (info->data.parallel_vbus) {
 		pdata->input_current_limit = pdata->input_current_limit / 2;
@@ -518,24 +554,73 @@ done:
 	mutex_unlock(&swchgalg->ichg_aicr_access_mutex);
 }
 
+static u32 get_charge_cycle_count_level(struct charger_manager *info)
+{
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int  ret;
+	u32 ffc_constant_voltage = 0;
+
+	psy = power_supply_get_by_name("battery");
+	if (!psy) {
+		pr_err("%s : power_supply_get_by_name error!\n", __func__);
+	}
+
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CYCLE_COUNT, &val);
+	if (ret) {
+		pr_err("%s : power_supply_get_property error!\n", __func__);
+	}
+
+	pr_err("%s : charger cycle count  = %d\n", __func__, val.intval);
+
+	if ((val.intval >= info->chg_cycle_count_level1) && (val.intval <= (info->chg_cycle_count_level2 - 1)))
+		ffc_constant_voltage = info->ffc_cv_1;
+
+	if ((val.intval > info->chg_cycle_count_level2) && (val.intval <= (info->chg_cycle_count_level3 - 1)))
+		ffc_constant_voltage = info->ffc_cv_2;
+
+	if ((val.intval > info->chg_cycle_count_level3) && (val.intval <= (info->chg_cycle_count_level4 - 1)))
+		ffc_constant_voltage = info->ffc_cv_3;
+
+	if (val.intval >= info->chg_cycle_count_level4)
+		ffc_constant_voltage = info->ffc_cv_4;
+
+	return  ffc_constant_voltage;
+}
+
 static void swchg_select_cv(struct charger_manager *info)
 {
-	u32 constant_voltage;
+	u32 constant_voltage = 4450000;
+	u32 dynamic_cv = 0;
 	bool chg2_chip_enabled = false;
+
+	u32 ffc_constant_voltage = 0;
+	ffc_constant_voltage = get_charge_cycle_count_level(info);
+
+	if (info->enable_sw_ffc) {
+		if (ffc_constant_voltage != 0) {
+			chr_err("%s, ffc_constant_voltage  = %d\n", __func__, ffc_constant_voltage);
+			constant_voltage = ffc_constant_voltage;
+		}
+	}
 
 	charger_dev_is_chip_enabled(info->chg2_dev, &chg2_chip_enabled);
 
 	if (info->enable_sw_jeita)
 		if (info->sw_jeita.cv != 0) {
-			charger_dev_set_constant_voltage(info->chg1_dev,
-							info->sw_jeita.cv);
-			return;
+			chr_err("%s, info->sw_jeita.cv  = %d\n", __func__, info->sw_jeita.cv);
+			if ( constant_voltage > info->sw_jeita.cv) {
+				constant_voltage =  info->sw_jeita.cv;
+			}
 		}
 
 	/* dynamic cv*/
-	constant_voltage = info->data.battery_cv;
-	mtk_get_dynamic_cv(info, &constant_voltage);
-
+	dynamic_cv = info->data.battery_cv;
+	mtk_get_dynamic_cv(info, &dynamic_cv);
+	if ( constant_voltage > dynamic_cv) {
+			constant_voltage =  dynamic_cv;
+	}
+	chr_err("%s, constant_voltage  = %d\n", __func__,constant_voltage);
 	charger_dev_set_constant_voltage(info->chg1_dev, constant_voltage);
 	/* Set slave charger's CV to 200mV higher than master's */
 	if (chg2_chip_enabled)
@@ -554,7 +639,8 @@ static void dual_swchg_turn_on_charging(struct charger_manager *info)
 
 	if (is_dual_charger_supported(info) == false)
 		chg2_enable = false;
-
+	if(charger_manager_is_input_suspend() == true)
+		chg1_enable = false;
 	if (swchgalg->state == CHR_ERROR) {
 		chg1_enable = false;
 		chg2_enable = false;
@@ -829,9 +915,61 @@ int mtk_dual_switch_chr_err(struct charger_manager *info)
 	return 0;
 }
 
+static int change_recharge_status(struct charger_manager *info)
+{
+	bool recharge_flag = false;
+	unsigned int battery_uisoc = 0;
+	long int battery_volt = 0;
+	int battery_health = 0;
+	int ret;
+	int recharger_uisoc_limit;
+	struct power_supply *psy;
+	union power_supply_propval val;
+
+	recharger_uisoc_limit = 99;
+	psy = power_supply_get_by_name("battery");
+	if (!psy) {
+		pr_err("%s : power_supply_get_by_name error!\n", __func__);
+	}
+
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_HEALTH, &val);
+	if (ret) {
+		pr_err("%s : power_supply_get_property error!\n", __func__);
+	}
+	battery_health = val.intval;
+
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_VOLTAGE_NOW, &val);
+	if (ret) {
+		pr_err("%s : power_supply_get_property error!\n", __func__);
+	}
+	battery_volt = val.intval;
+
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CAPACITY, &val);
+	if (ret) {
+		pr_err("%s : power_supply_get_property error!\n", __func__);
+	}
+	battery_uisoc = val.intval;
+
+	pr_err("%s : battery_health = %d, battery_volt = %d, battery_uisoc = %d, recharger_uisoc_limit = %d\n", __func__,
+						battery_health, battery_volt, battery_uisoc, recharger_uisoc_limit);
+
+	if (battery_health  == POWER_SUPPLY_HEALTH_OVERHEAT) {
+			chr_err("over heat , battery recharging!\n");
+			recharge_flag = true;
+	} else {
+		if (battery_uisoc < recharger_uisoc_limit) {
+			chr_err("not over heat , battery recharging!\n");
+			recharge_flag = true;
+		}
+	}
+	return recharge_flag;
+}
+
+
 int mtk_dual_switch_chr_full(struct charger_manager *info)
 {
 	bool chg_done = false;
+	bool recharge_flag = false;
 	struct dual_switch_charging_alg_data *swchgalg = info->algorithm_data;
 
 	/* turn off LED */
@@ -843,7 +981,8 @@ int mtk_dual_switch_chr_full(struct charger_manager *info)
 	swchg_select_cv(info);
 	info->polling_interval = CHARGING_FULL_INTERVAL;
 	charger_dev_is_charging_done(info->chg1_dev, &chg_done);
-	if (!chg_done) {
+	recharge_flag = change_recharge_status(info);
+	if (!chg_done && recharge_flag) {
 		swchgalg->state = CHR_CC;
 		charger_dev_do_event(info->chg1_dev, EVENT_RECHARGE, 0);
 		mtk_pe20_set_to_check_chr_type(info, true);
@@ -1015,7 +1154,12 @@ int mtk_dual_switch_charging_init(struct charger_manager *info)
 		chr_info("Found primary charger [%s]\n",
 			info->chg1_dev->props.alias_name);
 	else
-		chr_err("*** Error: can't find primary charger ***\n");
+	{
+		msleep(300);
+		info->chg1_dev = get_charger_by_name("primary_chg");
+		if (info->chg1_dev == NULL)
+			chr_err("*** Error: can't find primary charger, chg1_dev == NULL ***\n");
+	}
 
 	info->chg2_dev = get_charger_by_name("secondary_chg");
 	if (info->chg2_dev)
