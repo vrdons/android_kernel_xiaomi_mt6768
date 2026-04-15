@@ -35,7 +35,11 @@ bat_gm30: battery{
 
 	POWERON_SYSTEM_IBOOT = <(500)>;				/*	power on system iboot*/
 
+#ifdef CONFIG_TARGET_PRODUCT_SELENECOMMON
+	SHUTDOWN_GAUGE0_VOLTAGE = <(33500)>;		/*	shutdown gauge 0% voltage*/
+#else
 	SHUTDOWN_GAUGE0_VOLTAGE = <(34000)>;		/*	shutdown gauge 0% voltage*/
+#endif
 
 	TEMPERATURE_T0 = <(50)>;					/*	Battery temperature T0*/
 
@@ -75,5 +79,11 @@ bat_gm30: battery{
 
 	MULTI_TEMP_GAUGE0 = <(1)>;					/* Multi gauge0 enable*/
 
+#ifdef CONFIG_TARGET_PRODUCT_SELENECOMMON
+/*K19A HQ-123457 K19A charger of profile by wangqi at 2021/4/22 start*/
+#include "mt6769_battery_table_ext.dtsi"
+/*K19A HQ-123457 K19A charger of profile by wangqi at 2021/4/22 end*/
+#else
 #include "mt6768_battery_table.dtsi"
+#endif
 };
