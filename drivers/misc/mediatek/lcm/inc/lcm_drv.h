@@ -584,11 +584,10 @@ struct dynamic_fps_info {
 enum DynFPS_LEVEL {
 	DFPS_LEVEL0 = 0,
 	DFPS_LEVEL1,
-	DFPS_LEVEL2,
 	DFPS_LEVELNUM,
 };
 
-#define DFPS_LEVELS 3
+#define DFPS_LEVELS 2
 enum FPS_CHANGE_INDEX {
 	DYNFPS_NOT_DEFINED = 0,
 	DYNFPS_DSI_VFP = 1,
