@@ -221,9 +221,11 @@ int teei_log_fn(void *work)
 		retVal = wait_for_completion_interruptible(&teei_log_comp);
 		if (retVal != 0)
 			continue;
-		//spin_lock_irqsave(&s->lock, flags);
+#ifdef CONFIG_MICROTRUST_TZ_LOG
+		spin_lock_irqsave(&s->lock, flags);
 		tz_driver_dump_logs(s);
-		//spin_unlock_irqrestore(&s->lock, flags);
+		spin_unlock_irqrestore(&s->lock, flags);
+#endif
 	}
 
 	return NOTIFY_OK;
@@ -436,4 +438,3 @@ int tz_log_remove(struct platform_device *pdev)
 
 	return 0;
 }
-
