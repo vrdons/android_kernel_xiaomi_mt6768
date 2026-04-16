@@ -418,15 +418,8 @@ static int bms_get_property(struct power_supply *psy,
 		val->intval = my_battery_id_voltage;
 		break;
 	case POWER_SUPPLY_PROP_BATTERY_TYPE:
-		pr_debug("wlc raw battery_type index :%d.\n", gm.battery_id);
-		if (gm.battery_id == 4) {
-			val->intval = 3;
-		} else if (gm.battery_id == 5){
-			val->intval = 1;
-		} else {
-			val->intval = gm.battery_id;
-		}
-		pr_debug("wlc mature battery_type index:%d.\n", val->intval);
+		pr_debug("gm.battery_id :%d.\n", gm.battery_id);
+		val->intval = gm.battery_id;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 #ifdef CONFIG_MTK_ENG_BUILD
@@ -435,10 +428,14 @@ static int bms_get_property(struct power_supply *psy,
 		val->intval = gm.algo_qmax * gm.aging_factor / 100;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+#ifdef CONFIG_TARGET_PRODUCT_SELENECOMMON
 		if(gm.battery_id == 0 || gm.battery_id == 1)
 			val->intval = 5000000;
 		else
 			val->intval = 6000000;
+#else
+		val->intval = 5020000;
+#endif
 		break;
 	case POWER_SUPPLY_PROP_RESISTANCE:
 		val->intval = 140000;
@@ -509,11 +506,9 @@ void otg_thermal_limit(void)
 #endif
 		primary_charger = get_charger_by_name("primary_chg");
 		if (!primary_charger) {
-
 #ifdef CONFIG_MTK_ENG_BUILD
 			pr_err("primary_charger is NULL again\n");
 #endif
-
 			return;
 		}
 	}
@@ -801,7 +796,7 @@ void battery_update(struct battery_data *bat_data)
 
 	if (!primary_charger) {
 #ifdef CONFIG_MTK_ENG_BUILD
-				pr_err("primary_charger is NULL\n");
+		pr_err("primary_charger is NULL\n");
 #endif
 		primary_charger = get_charger_by_name("primary_chg");
 		if (!primary_charger) {
@@ -3561,8 +3556,8 @@ static ssize_t store_FG_daemon_log_level(
 				val
 			);
 
-			gm.d_log_level = 0;
-			gm.log_level = 0;
+			gm.d_log_level = val;
+			gm.log_level = val;
 		}
 		if (val >= 7)
 			gauge_coulomb_set_log_level(3);
@@ -4316,13 +4311,13 @@ static void otg_boost_limit_work(struct work_struct *work)
 		count_high = 0;
 	}
 
-	if (count_low >= 6)	{
+	if (count_low >= 3)	{
 		charger_dev_set_otg_current(primary_charger, 1800000);
 		otg_ibat_limit = 0;
 #ifdef CONFIG_MTK_ENG_BUILD
 		pr_err("dhx---set otg current 1.8A\n");
 #endif
-	} else if (count_high == 6)	{
+	} else if (count_high == 3)	{
 		charger_dev_set_otg_current(primary_charger, 1000000);
 		otg_ibat_limit = 1;
 #ifdef CONFIG_MTK_ENG_BUILD
