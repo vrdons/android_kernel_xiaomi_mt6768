@@ -50,10 +50,9 @@
 #include "inc/tcpci.h"
 #include "inc/tcpci_timer.h"
 #include "inc/tcpci_typec.h"
-/*K19A HQHW-963 K19A for sy cdp by langjunjun at 2021/7/15 start*/
+
 #define __BQ25890H__ 1
 #include "../../../../power/supply/mediatek/charger/bq2589x_reg.h"
-/*K19A HQHW-963 K19A for sy cdp  by langjunjun at 2021/7/15 end*/
 
 #if 1 /*  #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0))*/
 #include <linux/sched/rt.h>
@@ -356,7 +355,7 @@ static void wusb3801_irq_work_handler(struct kthread_work *work)
      }
 	tcpci_unlock_typec(tcpc);
 }
-/*K19A HQHW-963 K19A for sy cdp by langjunjun at 2021/7/15 start*/
+
 void wusb3801_intr_handler_resume(void)
 {
 	if (g_irq_3801_flag == true) {
@@ -367,21 +366,23 @@ void wusb3801_intr_handler_resume(void)
 	}
 	return;
 }
-/*K19A HQHW-963 K19A for sy cdp by langjunjun at 2021/7/15 end*/
 
 static irqreturn_t wusb3801_intr_handler(int irq, void *data)
 {
 	struct wusb3801_chip *chip = data;
-	/*K19A HQHW-963 K19A for sy cdp by langjunjun at 2021/7/15 start*/
+	#ifdef CONFIG_CHARGER_BQ2589X_CHARGER
 	if (bq2589x_get_cdp_status() == true) {
 		pr_err("%s:ljj  bq2589x_get_cdp_status is true,returned!!!\n", __func__);
 		g_irq_3801_flag = true;
 		g_3801_chip = chip;
+	#else
+	if(0) {
+	#endif
 	} else {
 		__pm_wakeup_event(&chip->irq_wake_lock, WUSB3801_IRQ_WAKE_TIME);
 		kthread_queue_work(&chip->irq_worker, &chip->irq_work);
 	}
-	/*K19A HQHW-963 K19A for sy cdp by langjunjun at 2021/7/15 end*/
+
 	return IRQ_HANDLED;
 }
 
