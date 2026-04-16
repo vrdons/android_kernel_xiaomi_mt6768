@@ -937,8 +937,8 @@ static void usbpd_pm_workfunc(struct work_struct *work)
 	usbpd_pm_update_cp_sec_status(pdpm);
 	
 	if (!usbpd_pm_sm(pdpm) && pdpm->pd_active)
-		schedule_delayed_work(&pdpm->pm_work,
-				msecs_to_jiffies(PM_WORK_RUN_INTERVAL));
+		queue_delayed_work(system_power_efficient_wq, 
+				&pdpm->pm_work, msecs_to_jiffies(PM_WORK_RUN_INTERVAL));
 }
 
 static void enable_work_func(struct work_struct *work)
@@ -948,8 +948,8 @@ static void enable_work_func(struct work_struct *work)
 	
 	usbpd_pm_enable_cp(pdpm, true);
 	
-	schedule_delayed_work(&pdpm->enable_work,
-				msecs_to_jiffies(PM_WORK_RUN_INTERVAL));
+	queue_delayed_work(system_power_efficient_wq,
+		&pdpm->enable_work, msecs_to_jiffies(PM_WORK_RUN_INTERVAL));
 }
 
 static void usbpd_pm_disconnect(struct usbpd_pm *pdpm)
@@ -982,7 +982,7 @@ static void usbpd_pd_contact(struct usbpd_pm *pdpm, bool connected)
 		usbpd_pm_evaluate_src_caps(pdpm);
 		pr_err("[SC manager] >>start cp charging pps support %d\n", pdpm->pps_supported);
 		if (pdpm->pps_supported)
-			schedule_delayed_work(&pdpm->pm_work, 0);
+			queue_delayed_work(system_power_efficient_wq, &pdpm->pm_work, 0);
 		else
 			pdpm->pd_active = false;
 	} else {

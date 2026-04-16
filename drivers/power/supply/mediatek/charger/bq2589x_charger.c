@@ -998,7 +998,7 @@ static void bq2589x_inform_charger_type(struct bq2589x *bq)
 			if ((bq->power_good) && (cdp_detect == false)) {
 				cdp_detect = true;
 				bq2589x_inform_charger_type_report(bq);
-				schedule_delayed_work(&bq->cdp_work, msecs_to_jiffies(1));
+				queue_delayed_work(system_power_efficient_wq, &bq->cdp_work, msecs_to_jiffies(1));
 				pr_err("wlc cdp detected \n");
 			} else if ((!bq->power_good) && (cdp_detect == true)) {
 				cdp_unattach = true;
@@ -1021,7 +1021,7 @@ static int bq2589x_enable_chg_type_det(struct charger_device *chg_dev, bool en)
 	ret = bq2589x_get_charger_type(bq, &bq->chg_type);
 	if (!ret)
 		bq2589x_inform_charger_type(bq);
-	schedule_delayed_work(&bq->read_byte_work, msecs_to_jiffies(600));
+	queue_delayed_work(system_power_efficient_wq, &bq->read_byte_work, msecs_to_jiffies(600));
 	pr_err("end,bq->chg_type = %d\n",bq->chg_type);
 	return 0;
 }
@@ -1151,7 +1151,8 @@ static irqreturn_t bq2589x_irq_handler(int irq, void *data)
 	if (!ret &&prev_chg_type != bq->chg_type)
 		bq2589x_inform_charger_type(bq);
 
-	schedule_delayed_work(&bq->read_byte_work, msecs_to_jiffies(600));
+	queue_delayed_work(system_power_efficient_wq,
+		&bq->read_byte_work, msecs_to_jiffies(600));
 
 	return IRQ_HANDLED;
 }
