@@ -32,8 +32,8 @@
 /* static struct disp_lcm_handle _disp_lcm_driver[MAX_LCM_NUMBER]; */
 
 #ifdef CONFIG_MTK_HIGH_FRAME_RATE
-/* support dfps num 2 60/90 */
-#define DFPS_LEVEL 2
+/* support dfps num 3 30/60/90 */
+#define DFPS_LEVEL 3
 #endif
 int _lcm_count(void)
 {
@@ -1958,4 +1958,3 @@ done:
 
 /*-------------------DynFPS end-----------------------------*/
 #endif
-
