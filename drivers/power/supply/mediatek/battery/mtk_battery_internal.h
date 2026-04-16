@@ -709,7 +709,6 @@ struct mtk_battery {
 /*custom related*/
 	int battery_id;
 
-	bool shutdown_delay;
 /*simulator log*/
 	struct simulator_log log;
 

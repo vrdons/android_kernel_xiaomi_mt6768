@@ -124,7 +124,6 @@ struct delayed_work	otg_boost_current_work;
 int cycle_count;
 static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
-	POWER_SUPPLY_PROP_SHUTDOWN_DELAY,
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_CHARGE_TYPE,
 	POWER_SUPPLY_PROP_PRESENT,
@@ -526,8 +525,6 @@ void otg_thermal_limit(void)
 	}
 }
 
-#define SHUTDOWN_DELAY_VOL	3300
-
 int get_charger_type(void);
 static int battery_get_property(struct power_supply *psy,
 	enum power_supply_property psp,
@@ -539,8 +536,6 @@ static int battery_get_property(struct power_supply *psy,
 	int input_suspend;
 	u32 type;
 	static struct charger_device *primary_charger;
-	static bool shutdown_delay_cancel;
-	static bool last_shutdown_delay;
 	struct battery_data *data = container_of(psy->desc, struct battery_data, psd);
 	primary_charger = get_charger_by_name("primary_chg");
 	switch (psp) {
@@ -579,31 +574,6 @@ static int battery_get_property(struct power_supply *psy,
 			val->intval = gm.fixed_uisoc;
 		else
 			val->intval = data->BAT_CAPACITY;
-		if (val->intval  == 0){
-			if ( data->BAT_batt_vol > SHUTDOWN_DELAY_VOL
-				&& data->BAT_STATUS != POWER_SUPPLY_STATUS_CHARGING) {
-				gm.shutdown_delay = true;
-				val->intval = 1;
-			} else if (data->BAT_STATUS == POWER_SUPPLY_STATUS_CHARGING
-				&& gm.shutdown_delay) {
-				gm.shutdown_delay = false;
-				shutdown_delay_cancel = true;
-				val->intval = 1;
-			} else {
-					gm.shutdown_delay = false;
-					if (shutdown_delay_cancel){
-						val->intval = 1;
-					}
-			}
-		}else {
-				gm.shutdown_delay = false;
-				shutdown_delay_cancel = false;
-		}
-		if (last_shutdown_delay != gm.shutdown_delay) {
-			pr_debug("last_shutdown_delay:%d,gm.shutdown_delay:%d, update psy\n",last_shutdown_delay,gm.shutdown_delay);
-			last_shutdown_delay = gm.shutdown_delay;
-			power_supply_changed(battery_main.psy);
-		}
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		if(gm.battery_id == 0 || gm.battery_id == 1)
@@ -641,9 +611,6 @@ static int battery_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
 		val->intval = charger_manager_is_input_suspend();
-		break;
-	case POWER_SUPPLY_PROP_SHUTDOWN_DELAY:
-		val->intval= gm.shutdown_delay;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		val->intval = charger_manager_get_prop_system_temp_level();
