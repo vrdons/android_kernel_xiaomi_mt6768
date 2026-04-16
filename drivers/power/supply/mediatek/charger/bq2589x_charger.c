@@ -98,27 +98,17 @@ struct bq2589x {
 
 	struct bq2589x_platform_data *platform_data;
 	struct charger_device *chg_dev;
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/6 start */
 	struct delayed_work	read_byte_work;
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/6 start */
 	struct power_supply *psy;
-	/*K19A HQHW-963 K19A for sy cdp by langjunjun at 2021/7/15 start*/
 	struct delayed_work	cdp_work;
-	/*K19A HQHW-963 K19A for sy cdp  by langjunjun at 2021/7/15 end*/
 };
-/* Huaqin modify for WXYFB-592 by miaozhichao at 2021/3/29 start */
 extern enum hvdcp_status hvdcp_type_tmp;
-/* Huaqin modify for WXYFB-592 by miaozhichao at 2021/3/29 end */
 static int g_charger_type = 0;
-/* Huaqin add for HQ-134476 by miaozhichao at 2021/5/29 start */
 
-/*K19A HQHW-963 K19A for sy cdp by langjunjun at 2021/7/15 start*/
 bool cdp_detect = false;
-/*K19A HQHW-963 K19A for sy cdp by langjunjun at 2021/7/15 end*/
 
 static int charger_detect_count = 3;
 static int charger_float_count = 0;
-/* Huaqin add for HQ-134476 by miaozhichao at 2021/5/29 end */
 
 bool cdp_unattach = false;
 
@@ -207,7 +197,7 @@ out:
 	mutex_unlock(&bq->i2c_rw_lock);
 	return ret;
 }
-/*K19A HQHW-963 K19A  kernel charger by zhixueyin at 2021/6/29 start*/
+
 static int bq2589x_disable_12V(struct bq2589x *bq)
 {
 	u8 val;
@@ -246,7 +236,7 @@ static int bq2589x_dp_set_3P3V(struct bq2589x *bq)
 
 	return ret;
 }
-/*K19A HQHW-963 K19A  kernel charger by zhixueyin at 2021/6/29 end*/
+
 static int bq2589x_enable_otg(struct bq2589x *bq)
 {
 
@@ -263,7 +253,7 @@ static int bq2589x_disable_otg(struct bq2589x *bq)
 	return bq2589x_update_bits(bq, BQ2589X_REG_03,
 				   BQ2589X_OTG_CONFIG_MASK, val);
 }
-/* Huaqin add/modify/del for WXYFB-996 by miaozhichao at 2021/3/29 start */
+
 static int bq2589x_disable_maxcen(struct bq2589x *bq)
 {
 	int ret;
@@ -274,7 +264,7 @@ static int bq2589x_disable_maxcen(struct bq2589x *bq)
 	return ret;
 }
 EXPORT_SYMBOL_GPL(bq2589x_disable_maxcen);
-/* Huaqin add/modify/del for WXYFB-996 by miaozhichao at 2021/3/29 end */
+
 static int bq2589x_enable_hvdcp(struct bq2589x *bq)
 {
 	int ret;
@@ -296,6 +286,7 @@ static int bq2589x_disable_hvdcp(struct bq2589x *bq)
 	return ret;
 }
 EXPORT_SYMBOL_GPL(bq2589x_disable_hvdcp);
+
 static int bq2589x_enable_charger(struct bq2589x *bq)
 {
 	int ret;
@@ -509,7 +500,6 @@ int bq2589x_set_input_current_limit(struct bq2589x *bq, int curr)
 						val << BQ2589X_IINLIM_SHIFT);
 }
 
-/*K19A HQ-133295 K19A charger full time by wangqi at 2021/5/6 start*/
 int bq2589x_set_ir_compensation(struct bq2589x *bq, int bat_comp, int vclamp)
 {
 	u8 val_bat_comp;
@@ -525,7 +515,6 @@ int bq2589x_set_ir_compensation(struct bq2589x *bq, int bat_comp, int vclamp)
 						val_vclamp << BQ2589X_VCLAMP_SHIFT);
 	return 0;
 }
-/*K19A HQ-133295 K19A charger full time by wangqi at 2021/5/6 start*/
 
 int bq2589x_set_watchdog_timer(struct bq2589x *bq, u8 timeout)
 {
@@ -806,9 +795,7 @@ static struct bq2589x_platform_data *bq2589x_parse_dt(struct device_node *np,
 	ret = of_property_read_u32(np, "ti,bq2589x,precharge-current",
 				   &pdata->iprechg);
 	if (ret) {
-/*K19A HQHW-881 K19A charger of 2.5v by wangqi at 2021/5/20 start*/
 		pdata->iprechg = 256;
-/*K19A HQHW-881 K19A charger of 2.5v by wangqi at 2021/5/20 end*/
 		pr_err("Failed to read node of ti,bq2589x,precharge-current\n");
 	}
 
@@ -845,7 +832,7 @@ static int bq2589x_get_charger_type_ext(struct charger_device *chg_dev, u32 *typ
 	return 0;
 }
 EXPORT_SYMBOL_GPL(bq2589x_get_charger_type_ext);
-/*K19A HQ-138863 K19A  cdp by zhixueyin at 2021/7/10 start*/
+
 bool bq2589x_get_cdp_status(void)
 {
 	return cdp_detect;
@@ -861,14 +848,13 @@ static int chip_num(struct bq2589x *bq)
 	pr_err(" bq2589x:id_dis:%d", id_dis);
 	return id_dis;
 }
-/*K19A HQ-138863 K19A  cdp by zhixueyin at 2021/7/10 end*/
 static int bq2589x_get_charger_type(struct bq2589x *bq, enum charger_type *type)
 {
 	int ret;
 	u8 reg_val = 0;
 	int vbus_stat = 0;
 	enum charger_type chg_type = CHARGER_UNKNOWN;
-	/*K19A HQ-129052 K19A charger of thermal by wangqi at 2021/4/22 start*/
+
 	static struct power_supply * usb_psy = NULL;
 	static struct mt_charger *mt_chg = NULL;
 	static const enum power_supply_type const smblib_apsd_results[] = {
@@ -883,10 +869,8 @@ static int bq2589x_get_charger_type(struct bq2589x *bq, enum charger_type *type)
 		POWER_SUPPLY_TYPE_USB_FLOAT,
 		POWER_SUPPLY_TYPE_USB_HVDCP,
 	};
-	/*K19A HQ-129052 K19A charger of thermal by wangqi at 2021/4/22 end*/
-	/*K19A k19A-143 K19A charger_type by wangqi at 2021/4/15 start*/
+
 	hvdcp_type_tmp = HVDCP_NULL;
-	/*K19A k19A-143 K19A charger_type by wangqi at 2021/4/15 end*/	
 	ret = bq2589x_read_byte(bq, BQ2589X_REG_0B, &reg_val);
 	if (ret)
 		return ret;
@@ -906,25 +890,19 @@ static int bq2589x_get_charger_type(struct bq2589x *bq, enum charger_type *type)
 	case BQ2589X_VBUS_TYPE_DCP:
 		chg_type = STANDARD_CHARGER;
 		break;
-/*K19A WXYFB-996 K19A quick charger bq25890 bring up by miaozhichao at 2021/3/29 start*/
 	case BQ2589X_VBUS_TYPE_HVDCP:
 		chg_type = HVDCP_CHARGER;
-/* Huaqin modify for WXYFB-592 by miaozhichao at 2021/3/29 start */
 		hvdcp_type_tmp = HVDCP;
-/* Huaqin modify for WXYFB-592 by miaozhichao at 2021/3/29 end */
 		break;
-/*K19A WXYFB-996 K19A quick charger bq25890 bring up by miaozhichao at 2021/3/29 end*/
 	case BQ2589X_VBUS_TYPE_UNKNOWN:
 		chg_type = NONSTANDARD_CHARGER;
 		break;
 	case BQ2589X_VBUS_TYPE_NON_STD:
 		chg_type = NONSTANDARD_CHARGER;
 		break;
-/* Huaqin add for HQ-136291 by miaozhichao at 2021/5/20 start */
 	case BQ2589X_VBUS_TYPE_OTG:
 		chg_type = CHARGER_UNKNOWN;
 		break;
-/* Huaqin add for HQ-136291 by miaozhichao at 2021/5/20 end */
 	default:
 		chg_type = NONSTANDARD_CHARGER;
 		break;
@@ -932,7 +910,6 @@ static int bq2589x_get_charger_type(struct bq2589x *bq, enum charger_type *type)
 
 	*type = chg_type;
 	g_charger_type = chg_type;
-	/*K19A HQ-129052 K19A charger of thermal by wangqi at 2021/4/22 start*/
 	if(usb_psy == NULL)
 		usb_psy = power_supply_get_by_name("usb");
 
@@ -941,10 +918,7 @@ static int bq2589x_get_charger_type(struct bq2589x *bq, enum charger_type *type)
 
 	if(mt_chg != NULL)
 		mt_chg->usb_desc.type = smblib_apsd_results[chg_type];
-	/*K19A HQ-129052 K19A charger of thermal by wangqi at 2021/4/22 end*/
-	/*K19A-104 charge by wangchao at 2021/4/8 start*/
 	pr_err("vbus_stat:%d ,chg_type:%d\n", vbus_stat,chg_type);
-	/*K19A-104 charge by wangchao at 2021/4/8 end*/
 	return 0;
 }
 
@@ -985,7 +959,6 @@ static int bq2589x_inform_charger_type_report(struct bq2589x *bq)
 	return ret;
 }
 
-/*K19A HQHW-963 K19A for sy cdp by langjunjun at 2021/7/15 start*/
 static void bq2589x_cdp_work(struct work_struct *work)
 {
 	int timer_count = 0;
@@ -1040,65 +1013,48 @@ static void bq2589x_inform_charger_type(struct bq2589x *bq)
 		bq2589x_inform_charger_type_report(bq);
 	}
 }
-/*K19A HQHW-963 K19A for sy cdp  by langjunjun at 2021/7/15 end*/
 
-/*K19A WXYFB-996 K19A charger by wangchao at 2021/4/22 start*/
 static int bq2589x_enable_chg_type_det(struct charger_device *chg_dev, bool en)
 {
-/* Huaqin add for HQ-138817 by miaozhichao at 2021/6/3 start */
 	int ret;
-/* Huaqin add for HQ-138817 by miaozhichao at 2021/6/3 end*/
 	struct bq2589x *bq = dev_get_drvdata(&chg_dev->dev);
-/* Huaqin add for HQ-138817 by miaozhichao at 2021/6/3 start */
 	ret = bq2589x_get_charger_type(bq, &bq->chg_type);
 	if (!ret)
 		bq2589x_inform_charger_type(bq);
-/* Huaqin add for HQ-138817 by miaozhichao at 2021/6/3 end*/
-/* Huaqin add for HQ-134476 by miaozhichao at 2021/5/29 start */
 	schedule_delayed_work(&bq->read_byte_work, msecs_to_jiffies(600));
-/* Huaqin add for HQ-134476 by miaozhichao at 2021/5/29 end */
-/* Huaqin add for HQ-138817 by miaozhichao at 2021/6/3 start */
 	pr_err("end,bq->chg_type = %d\n",bq->chg_type);
-/* Huaqin add for HQ-138817 by miaozhichao at 2021/6/3 end*/
 	return 0;
 }
-/*K19A WXYFB-996 K19A charger by wangchao at 2021/4/22 end*/
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/6 start */
+
 extern void Charger_Detect_Init(void);
 extern void Charger_Detect_Release(void);
 
 static void bq2589x_read_byte_work(struct work_struct *work)
 {
         int ret;
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/27 start */
 	u8 reg_val = 0;
 	int vbus_stat = 0;
 	int vbus_gd = 0;
 	int id_dis = 0;
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/27 end */
 	struct bq2589x *bq = container_of(work,
 			struct bq2589x, read_byte_work.work);
 	enum charger_type prev_chg_type;
-/* Huaqin add for HQHW-963 by wanglicheng at 2021/7/1 start */
 	static bool std_mode_dec = true;
-/* Huaqin add for HQHW-963 by wanglicheng at 2021/7/1 end */
 
 	prev_chg_type = bq->chg_type;
 	ret = bq2589x_get_charger_type(bq, &bq->chg_type);
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/27 start */
-/* Huaqin add for HQ-134476 by miaozhichao at 2021/5/29 start */
+
 	ret = bq2589x_read_byte(bq, BQ2589X_REG_0B, &reg_val);
 	vbus_stat = (reg_val & BQ2589X_VBUS_STAT_MASK);
 	vbus_stat >>= BQ2589X_VBUS_STAT_SHIFT;
 	ret = bq2589x_read_byte(bq, BQ2589X_REG_11, &reg_val);
 	vbus_gd = (reg_val & BQ2589X_VBUS_GD_MASK);
 	vbus_gd >>= BQ2589X_VBUS_GD_SHIFT;
-/* Huaqin add for HQ-134476 by miaozhichao at 2021/5/29 end */
+
 	ret = bq2589x_read_byte(bq,BQ2589X_REG_14,&reg_val);
 	id_dis = (reg_val & BQ2589X_PN_MASK);
 	id_dis >>= BQ2589X_PN_SHIFT;
 	pr_err(" bq2589x:id_dis:%d",id_dis);
-/* Huaqin add for HQ-134476 by miaozhichao at 2021/5/29 start */
 	if(id_dis == 3){
 		if(charger_detect_count > 0){
 			if(vbus_gd && vbus_stat == BQ2589X_VBUS_TYPE_DCP) {
@@ -1158,20 +1114,17 @@ static void bq2589x_read_byte_work(struct work_struct *work)
 			pr_err("vbus_stat = %d\n", vbus_stat);
 		}
 	}
-/* Huaqin add for HQ-134476 by miaozhichao at 2021/5/29 end */
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/27 end */
+
 	if (prev_chg_type != bq->chg_type && bq->chg_det_enable)
 		bq2589x_inform_charger_type(bq);
 }
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/6 end */
+
 static irqreturn_t bq2589x_irq_handler(int irq, void *data)
 {
 	int ret;
 	u8 reg_val;
 	bool prev_pg;
-/* Huaqin add for K19A-309 by wangchao at 2021/5/29 start */
 	enum charger_type prev_chg_type;
-/* Huaqin add for K19A-309 by wangchao at 2021/5/29 end */
 	struct bq2589x *bq = data;
 	ret = bq2589x_read_byte(bq, BQ2589X_REG_0B, &reg_val);
 	if (ret)
@@ -1181,8 +1134,6 @@ static irqreturn_t bq2589x_irq_handler(int irq, void *data)
 
 	bq->power_good = !!(reg_val & BQ2589X_PG_STAT_MASK);
 
-/* Huaqin modify for WXYFB-592 by miaozhichao at 2021/3/29 start */
-/* Huaqin add for HQ-134476 by miaozhichao at 2021/5/29 start */
 	if (!prev_pg && bq->power_good) {
 		pr_err("adapter/usb inserted\n");
 		charger_detect_count = 3;
@@ -1194,17 +1145,14 @@ static irqreturn_t bq2589x_irq_handler(int irq, void *data)
 	}else{
 		pr_err("prev_pg = %d  bq->power_good = %d\n",prev_pg,bq->power_good);
 	}
-/* Huaqin add for HQ-134476 by miaozhichao at 2021/5/29 end */
-/* Huaqin modify for WXYFB-592 by miaozhichao at 2021/3/29 end */
-/* Huaqin add for K19A-309 by wangchao at 2021/5/29 start */
+
 	prev_chg_type = bq->chg_type;
 	ret = bq2589x_get_charger_type(bq, &bq->chg_type);
 	if (!ret &&prev_chg_type != bq->chg_type)
 		bq2589x_inform_charger_type(bq);
-/* Huaqin add for K19A-309 by wangchao at 2021/5/29 end */
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/6 start */
+
 	schedule_delayed_work(&bq->read_byte_work, msecs_to_jiffies(600));
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/6 end */
+
 	return IRQ_HANDLED;
 }
 
@@ -1227,42 +1175,36 @@ static int bq2589x_register_interrupt(struct bq2589x *bq)
 
 	return 0;
 }
-/* Huaqin add for K19A-312 by wangchao at 2021/6/3 start */
+
 static void bq2589x_dump_regs(struct bq2589x *bq);
-/* Huaqin add for K19A-312 by wangchao at 2021/6/3 end */
+
 
 static int bq2589x_init_device(struct bq2589x *bq)
 {
 	int ret;
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/27 start */
 	int id_dis = 0;
 	u8 reg_val = 0;
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/27 end */
-/* Huaqin add for K19A-312 by wangchao at 2021/6/3 start */
+
 	pr_debug("bq2589x_dump_regs before init: \n");
 	bq2589x_dump_regs(bq);
-/* Huaqin add for K19A-312 by wangchao at 2021/6/3 end */
-	/* Huaqin add for HQHW-963 by zhixueyin at 2021/6/29 start */
+
 	ret = bq2589x_disable_12V(bq);
 	if (ret)
 		pr_err("Failed to disable 12V, ret = %d\n", ret);
 	bq2589x_enable_auto_dpdm(bq, true);
-	/* Huaqin add for HQHW-963 by zhixueyin at 2021/6/29 end */
+
 	bq2589x_disable_watchdog_timer(bq);
-	/*K19A HQ-133582 K19A charger time by wangqi at 2021/5/6 start*/
+
 	bq2589x_disable_safety_timer(bq);
-	/*K19A HQ-133582 K19A charger time by wangqi at 2021/5/6 end*/
-	/*K19A HQ-133295 K19A charger full time by wangqi at 2021/5/6 start*/
 	bq2589x_set_ir_compensation(bq, 20, 64);
-	/*K19A HQ-133295 K19A charger full time by wangqi at 2021/5/6 end*/
 
 	ret = bq2589x_set_prechg_current(bq, bq->platform_data->iprechg);
 	if (ret)
 		pr_err("Failed to set prechg current, ret = %d\n", ret);
 
-	/*K19A HQ-124114 K19A charger of jeita by wangqi at 2021/4/23 start*/
+
 	ret = bq2589x_set_term_current(bq, 200);
-	/*K19A HQ-124114 K19A charger of jeita by wangqi at 2021/4/23 end*/
+
 	if (ret)
 		pr_err("Failed to set termination current, ret = %d\n", ret);
 
@@ -1273,19 +1215,17 @@ static int bq2589x_init_device(struct bq2589x *bq)
 	ret = bq2589x_set_boost_current(bq, bq->platform_data->boosti);
 	if (ret)
 		pr_err("Failed to set boost current, ret = %d\n", ret);
-/* Huaqin add/modify/del for WXYFB-996 by miaozhichao at 2021/3/29 start */
+
 	ret = bq2589x_disable_maxcen(bq);
 	if (ret)
 		pr_err("Failed to set disable maxcen, ret = %d\n", ret);
-/* Huaqin add/modify/del for WXYFB-996 by miaozhichao at 2021/3/29 end */
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/27 start */
+
 	ret = bq2589x_read_byte(bq,BQ2589X_REG_14,&reg_val);
 	id_dis = (reg_val & BQ2589X_PN_MASK);
 	id_dis >>= BQ2589X_PN_SHIFT;
 	if(id_dis == 3){
-		/* Huaqin add for HQ-134273 by wangqi at 2021/6/1 start */
 		ret = bq2589x_set_term_current(bq, 128);
-		/* Huaqin add for HQ-134273 by wangqi at 2021/6/1 end */
+
 		if (hq_config() == 4 ||hq_config() == 5 ||
 			 hq_config() == 6 || hq_config() == 7) {
 			ret = bq2589x_set_term_current(bq, 200);
@@ -1294,31 +1234,23 @@ static int bq2589x_init_device(struct bq2589x *bq)
 		ret = bq2589x_disable_hvdcp(bq);
 		pr_debug("disable hvdcp,ret = %d\n",ret);
 	}else{
-		/* Huaqin add for HQ-134273 by wangqi at 2021/6/1 start */
 		ret = bq2589x_set_term_current(bq, 200);
-		/* Huaqin add for HQ-134273 by wangqi at 2021/6/1 end */
 		ret = bq2589x_enable_hvdcp(bq);
 		pr_debug("enable hvdcp,ret = %d\n",ret);
 	}
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/27 end */
-/* Huaqin add for HQ-135953 by wangchao at 2021/6/11 start */
+
 	ret = bq2589x_enable_ico(bq, 0);//disable ico
 	if (ret)
 		pr_err("Failed to disable ico, ret = %d\n", ret);
-/* Huaqin add for HQ-135953 by wangchao at 2021/6/11 end */
 
-/* Huaqin add for K19A-312 by wangchao at 2021/6/3 start */
 	ret = bq2589x_exit_hiz_mode(bq);
 	if (ret)
 		pr_err("Failed to set exit_hiz_mode, ret = %d\n", ret);
-/* Huaqin add for HQHW-963 by zhixueyin at 2021/6/29 start */
 	ret = bq2589x_enable_hvdcp(bq);
 	bq2589x_enable_auto_dpdm(bq, true);
 	ret = bq2589x_force_dpdm(bq);
-/* Huaqin add for HQHW-963 by zhixueyin at 2021/6/29 end */
 	pr_debug("bq2589x_dump_regs after init: \n");
 	bq2589x_dump_regs(bq);
-/* Huaqin add for K19A-312 by wangchao at 2021/6/3 end */
 
 	return 0;
 }
@@ -1358,8 +1290,7 @@ static void bq2589x_dump_regs(struct bq2589x *bq)
 #endif
 }
 
-static ssize_t
-bq2589x_show_registers(struct device *dev, struct device_attribute *attr,
+static ssize_t bq2589x_show_registers(struct device *dev, struct device_attribute *attr,
 		       char *buf)
 {
 	struct bq2589x *bq = dev_get_drvdata(dev);
@@ -1435,7 +1366,6 @@ static int bq2589x_charging(struct charger_device *chg_dev, bool enable)
 	return ret;
 }
 
-/*K19A-75 charge by wangchao at 2021/4/22 start*/
 static int bq2589x_enable_hiz(struct charger_device *chg_dev, bool enable)
 {
 	struct bq2589x *bq = dev_get_drvdata(&chg_dev->dev);
@@ -1452,7 +1382,6 @@ static int bq2589x_enable_hiz(struct charger_device *chg_dev, bool enable)
 
 	return ret;
 }
-/*K19A-75 charge by wangchao at 2021/4/22 end*/
 
 static int bq2589x_plug_in(struct charger_device *chg_dev)
 {
@@ -1618,17 +1547,13 @@ static int bq2589x_kick_wdt(struct charger_device *chg_dev)
 	return bq2589x_reset_watchdog_timer(bq);
 }
 
-/*K19A WXYFB-588 K19A charger usb_otg by wangqi at 2021/3/27 start*/
 extern bool usb_otg;
-/*K19A WXYFB-588 K19A charger usb_otg by wangqi at 2021/3/27 end*/
 static int bq2589x_set_otg(struct charger_device *chg_dev, bool en)
 {
 	int ret;
 	struct bq2589x *bq = dev_get_drvdata(&chg_dev->dev);
 
-/*K19A WXYFB-588 K19A charger usb_otg by wangqi at 2021/3/27 start*/
 	usb_otg = en;
-/*K19A WXYFB-588 K19A charger usb_otg by wangqi at 2021/3/27 end*/
 	if (en)
 		ret = bq2589x_enable_otg(bq);
 	else
@@ -1680,7 +1605,6 @@ static int bq2589x_set_boost_ilmt(struct charger_device *chg_dev, u32 curr)
 	return ret;
 }
 
-/*K19A HQ-135863 K19A charger of charge full by wangqi at 2021/5/20 start*/
 static int bq2589x_do_event(struct charger_device *chg_dev, u32 event,
 			    u32 args)
 {
@@ -1701,7 +1625,6 @@ static int bq2589x_do_event(struct charger_device *chg_dev, u32 event,
 
 	return 0;
 }
-/*K19A HQ-135863 K19A charger of charge full by wangqi at 2021/5/20 end*/
 
 static struct charger_ops bq2589x_chg_ops = {
 	/* Normal charging */
@@ -1709,9 +1632,7 @@ static struct charger_ops bq2589x_chg_ops = {
 	.plug_out = bq2589x_plug_out,
 	.dump_registers = bq2589x_dump_register,
 	.enable = bq2589x_charging,
-	/*K19A-75 charge by wangchao at 2021/4/15 start*/
 	.enable_hz = bq2589x_enable_hiz,
-	/*K19A-75 charge by wangchao at 2021/4/15 start*/
 	.is_enabled = bq2589x_is_charging_enable,
 	.get_charging_current = bq2589x_get_ichg,
 	.set_charging_current = bq2589x_set_ichg,
@@ -1724,9 +1645,7 @@ static struct charger_ops bq2589x_chg_ops = {
 	.is_charging_done = bq2589x_is_charging_done,
 	.get_min_charging_current = bq2589x_get_min_ichg,
 	.get_charger_type = bq2589x_get_charger_type_ext,
-	/*K19A WXYFB-996 K19A charger by wangchao at 2021/4/2 start*/
 	.enable_chg_type_det = bq2589x_enable_chg_type_det,
-	/*K19A WXYFB-996 K19A charger by wangchao at 2021/4/2 end*/
 
 	/* Safety timer */
 	.enable_safety_timer = bq2589x_set_safety_timer,
@@ -1738,13 +1657,9 @@ static struct charger_ops bq2589x_chg_ops = {
 
 	/* OTG */
 	.enable_otg = bq2589x_set_otg,
-	/*K19A K19A-187 K19A charger of set boost current by wangqi at 2021/4/27 start*/
 	.set_otg_current = bq2589x_set_boost_ilmt,
-	/*K19A K19A-187 K19A charger of set boost current by wangqi at 2021/4/27 start*/
 	.enable_discharge = NULL,
-	/*K19A HQ-135863 K19A charger of charge full by wangqi at 2021/5/20 start*/
 	.event = bq2589x_do_event,
-	/*K19A HQ-135863 K19A charger of charge full by wangqi at 2021/5/20 end*/
 
 	/* PE+/PE+20 */
 	.send_ta_current_pattern = NULL,
@@ -1821,12 +1736,10 @@ static int bq2589x_charger_probe(struct i2c_client *client,
 		pr_err("Failed to init device\n");
 		goto err_init;
 	}
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/6 start */
+
 	INIT_DELAYED_WORK(&bq->read_byte_work,bq2589x_read_byte_work);
-/* Huaqin add for HQ-132657 by miaozhichao at 2021/5/6 end */
-	/*K19A HQHW-963 K19A for sy cdp by langjunjun at 2021/7/15 start*/
 	INIT_DELAYED_WORK(&bq->cdp_work, bq2589x_cdp_work);
-	/*K19A HQHW-963 K19A for sy cdp  by langjunjun at 2021/7/15 end*/
+
 	bq2589x_register_interrupt(bq);
 
 	bq->chg_dev = charger_device_register(bq->chg_dev_name,
@@ -1869,16 +1782,11 @@ static int bq2589x_charger_remove(struct i2c_client *client)
 
 static void bq2589x_charger_shutdown(struct i2c_client *client)
 {
-	/*K19A-185 charge by wangchao at 2021/4/15 start*/
 	struct bq2589x *bq = i2c_get_clientdata(client);
-	/*HQ-138863 charge by zhixueyin at 2021/7/13 start*/
 	u8 reg_val = 0;
 	int ichg = 0;
-	/*HQ-138863 charge by zhixueyin at 2021/7/13 end*/
 	bq2589x_disable_otg(bq);
 	pr_debug("bq2589x_disable_otg for shutdown\n");
-	/*K19A-185 charge by wangchao at 2021/4/26 end*/
-	/*HQ-138863 charge by zhixueyin at 2021/7/13 start*/
 	if (chip_num(bq) != 3) {
 		bq2589x_read_byte(bq, BQ2589X_REG_04, &reg_val);
 		ichg = (reg_val & BQ2589X_ICHG_MASK) >> BQ2589X_ICHG_SHIFT;
@@ -1887,11 +1795,8 @@ static void bq2589x_charger_shutdown(struct i2c_client *client)
 			bq2589x_set_chargecurrent(bq, 128);
 		}
 	}
-	/*HQ-138863 charge by zhixueyin at 2021/7/13 end*/
-	/*K19A HQ-138863 K19A  cdp by zhixueyin at 2021/7/10 start*/
 	bq2589x_disable_maxcen(bq);
 	pr_debug("bq2589x_disable_maxcen for shutdown\n");
-	/*K19A HQ-138863 K19A  cdp by zhixueyin at 2021/7/10 start*/
 }
 
 static struct i2c_driver bq2589x_charger_driver = {
