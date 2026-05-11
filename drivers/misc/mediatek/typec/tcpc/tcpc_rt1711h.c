@@ -495,7 +495,7 @@ static inline void rt1711_poll_ctrl(struct rt1711_chip *chip)
 		cpu_idle_poll_ctrl(true);
 	}
 
-	schedule_delayed_work(
+	queue_delayed_work(system_power_efficient_wq,
 		&chip->poll_work, msecs_to_jiffies(40));
 }
 
@@ -1517,7 +1517,7 @@ static inline int rt1711h_check_revision(struct i2c_client *client)
 		dev_err(&client->dev, "read chip ID fail\n");
 		return -EIO;
 	}
-	
+
 	g_pd_is_present = true;
 
 	if (vid != RICHTEK_1711_VID) {
@@ -1569,7 +1569,7 @@ static int rt1711_i2c_probe(struct i2c_client *client,
 	if (chip_id < 0){
 		pr_err("szw:222rt1711\n");
 		return chip_id;
-		}	
+		}
 	pr_err("szw:read rt1711 chip id success\n");
 #if TCPC_ENABLE_ANYMSG
 	check_printk_performance();
