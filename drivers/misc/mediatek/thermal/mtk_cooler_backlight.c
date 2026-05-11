@@ -81,7 +81,7 @@ static void mtk_cl_backlight_set_max_brightness_limit(void)
 			setMaxbrightness(204, 1);	/* 10% */
 			break;
 		default:
-			setMaxbrightness(2047, 0);
+			setMaxbrightness(2047, 1);
 			break;
 		}
 #endif
