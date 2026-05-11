@@ -27,11 +27,8 @@
 #include <linux/sched/task.h>
 #endif
 
-#if KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE
 #include <linux/sched/signal.h>
-#else
 #include <linux/sched.h>
-#endif
 
 #include <mali_kbase.h>
 #include <hw_access/mali_kbase_hw_access_regmap.h>
