@@ -2193,7 +2193,6 @@ static __maybe_unused int mtk_jpeg_pm_resume(struct device *dev)
 	return 0;
 }
 
-/* 
 static __maybe_unused int mtk_jpeg_suspend(struct device *dev)
 {
 	int ret;
@@ -2216,9 +2215,9 @@ static __maybe_unused int mtk_jpeg_resume(struct device *dev)
 
 	return ret;
 }
-*/
+
 static const struct dev_pm_ops mtk_jpeg_pm_ops = {
-	//SET_SYSTEM_SLEEP_PM_OPS(mtk_jpeg_suspend, mtk_jpeg_resume)
+	SET_SYSTEM_SLEEP_PM_OPS(mtk_jpeg_suspend, mtk_jpeg_resume)
 	SET_RUNTIME_PM_OPS(mtk_jpeg_pm_suspend, mtk_jpeg_pm_resume, NULL)
 };
 
